@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pdflatex -interaction=nonstopmode DM.tex)",
+      "Bash(ls -d /data/tyy/DM/2Dphi4/phi4_L*_k*_l*_ncsnpp)",
+      "Bash(nvidia-smi --query-gpu=index,name,memory.free --format=csv,noheader)",
+      "Bash(python calibrate_step_size.py --device cuda:0 --L 128 --k 0.28 --num_samples 1024 --mh_steps 1 --t_mh 1e-4)",
+      "Bash(python calibrate_t_mh.py --device cuda:1 --L 128 --k 0.28 --num_samples 1024 --mh_steps 1 --c 0.2)",
+      "Bash(python acceptance_vs_epoch.py --device cuda:2 --L 128 --k 0.2705 --every 100 --c 0.2 --num_samples 1024 --mh_steps 1)",
+      "Bash(python acceptance_vs_epoch.py --device cuda:3 --L 128 --k 0.28 --every 100 --c 0.2 --num_samples 1024 --mh_steps 1)",
+      "Bash(python acceptance_vs_epoch.py --device cuda:5 --L 128 --k 0.26 --every 100 --c 0.2 --num_samples 1024 --mh_steps 1)"
+    ]
+  }
+}

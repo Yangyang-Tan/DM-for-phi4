@@ -1,0 +1,7 @@
+torch>=2.0
+pytorch_lightning>=2.0
+torch_ema
+h5py
+tqdm
+numpy
+matplotlib

@@ -1,0 +1,77 @@
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 大型二进制数据
+*.npy
+*.jld2
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.dat
+*.norm.json
+
+# 训练输出目录
+data/
+models/
+runs/
+lightning_logs/
+
+# 根目录扫描数据
+/scan_kappa_fahmc/
+/scan_kappa_wolff_fahmc/
+
+# 2D phi4 大型子目录
+2Dphi4/trainingdata/
+2Dphi4/phi4_L*/
+2Dphi4/scan_kappa*/
+2Dphi4/lightning_logs/
+2Dphi4/old/
+2Dphi4/2d_phi4-master/
+2Dphi4/lattice-phi4-master/
+
+# 3D phi4 大型子目录
+3Dphi4/trainingdata/
+3Dphi4/phi4_3d_L*/
+3Dphi4/scan_kappa*/
+3Dphi4/old/
+
+# LaTeX 构建产物
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.nav
+*.snm
+*.toc
+*.run.xml
+*-blx.bib
+texput.log
+
+# 生成的图片和数据（draft/figures/ 中的论文图保留）
+*.png
+*.svg
+*.csv
+/figures/
+/old/
+
+# Overleaf（独立 git 仓库）
+overleaf/
+
+# 第三方参考实现
+references/
+
+# MNIST 原始数据
+MNIST/raw/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# IDE 配置
+.vscode/
+.cursor/

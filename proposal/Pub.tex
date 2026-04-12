@@ -1,0 +1,182 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage [T1]{fontenc}
+\usepackage{ragged2e}
+\usepackage{soul}
+\newcommand\dunderline[3][-2pt]{{%
+  \sbox0{#3}%
+  \ooalign{\copy0\cr\rule[\dimexpr#1-#2\relax]{\wd0}{#2}}}}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx} 
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tabulary}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=cyan,
+	filecolor=blue,      
+	urlcolor=blue,
+	citecolor=blue,
+}
+\usepackage{multicol}
+\newcommand{\lw}[1]{[{\bf \color{red}{LW: #1}}]}
+
+% For underlines
+% \usepackage{ulem}
+\newcommand{\longunderline}[0]{\rule{0.75\textwidth}{0.4pt}}
+
+% Remove page numbers
+% \pagenumbering{gobble}
+
+% No paragraph indentation
+% \setlength{\parindent}{0pt}
+
+\usepackage[backend=bibtex,style=nature,eprint=false]{biblatex}
+\AtEveryCitekey{\clearfield{extradate}}
+\AtEveryBibitem{\clearfield{extradate}}
+\AtEveryBibitem{\clearfield{month}}
+\AtEveryCitekey{\clearfield{month}}
+\AtEveryBibitem{\clearfield{year}}
+\AtEveryCitekey{\clearfield{year}}
+\addbibresource{ref-lib.bib}
+\ExecuteBibliographyOptions{doi=false}
+
+
+\newbibmacro{string+doiurlisbn}[1]{%
+  \iffieldundef{doi}{%
+    \iffieldundef{url}{%
+    \href{http://arxiv.org/abs/\thefield{eprint}}{#1}%
+    }{%
+      \href{\thefield{url}}{#1}%
+    }%
+  }{%
+    \href{http://dx.doi.org/\thefield{doi}}{#1}%
+  }%
+}
+
+\DeclareFieldFormat{title}{\usebibmacro{string+doiurlisbn}{\mkbibemph{#1}}}
+\DeclareFieldFormat[article,incollection]{title}%
+    {\usebibmacro{string+doiurlisbn}{\mkbibquote{#1}}}
+
+\begin{document}
+
+
+\begin{center}
+    {\LARGE \dunderline{1.5pt}{\textbf{Publication and Presentation List}}} \\
+    \begin{multicols}{2}
+    
+    \begin{flushright}
+    \end{flushright}
+    \end{multicols}
+\end{center}
+
+\dunderline{1.5pt}{\large{\textbf{Name:} Yang-yang Tan}}
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{A. Publications}}}
+\vspace{0.5cm}
+
+The publications can be found in INSPIRE: {\href{{https://inspirehep.net/authors/1889875}}{\textcolor{blue}{https://inspirehep.net/authors/1889875} }}\\[3ex]
+
+\textbf{(1). Publications with peer review process}
+\normalsize\vspace{2ex}
+
+
+\begin{enumerate}
+\item Y.-r. Chen*, W.-j. Fu*, \textbf{Y.-y. Tan*}, (2025) \textit{Density functional theory of renormalization group in nuclear matter}\href{{https://doi.org/10.1103/4nrk-7sc4}}{, \textcolor{blue}{Phys.Rev.C 113 (2026) 4, 045801}} [\href{https://arxiv.org/abs/2508.02575}{\textcolor{blue}{arXiv:2508.02575}}]
+
+\item W.-j. Fu, C. Huang*, J. M. Pawlowski, \textbf{Y.-y. Tan}, L.-j. Zhou, (2025) \textit{Four-quark scatterings in QCD III}\href{{https://doi.org/10.1103/4sh5-w4yc}}{, \textcolor{blue}{Phys.Rev.D 112 (2025) 5, 054047}} [\href{https://arxiv.org/abs/2502.14388}{\textcolor{blue}{arXiv:2502.14388}}]
+
+\item Y.-r. Chen*, \textbf{Y.-y. Tan}, W.-j. Fu, (2024) \textit{Critical dynamics of Model H within the real-time fRG approach}\href{{https://doi.org/10.1103/PhysRevD.111.094025}}{, \textcolor{blue}{Phys.Rev.D 111 (2025) 9, 094025}} [\href{https://arxiv.org/abs/2406.00679}{\textcolor{blue}{arXiv:2406.00679}}]
+
+\item J. Braun, Y.-r. Chen, W.-j. Fu, F. Gao, F. Ihssen, C. Huang, J. M. Pawlowski, F. Rennecke*, F. Sattler, \textbf{Y.-y. Tan}, R. Wen, S. Yin, (2023) \textit{Soft modes in hot QCD matter}\href{{https://doi.org/10.1103/PhysRevD.111.094010}}{, \textcolor{blue}{Phys.Rev.D 111 (2025) 9, 094010}} [\href{https://arxiv.org/abs/2310.19853}{\textcolor{blue}{arXiv:2310.19853}}]
+
+\item\textbf{Y.-y. Tan}, Y.-r. Chen, W.-j. Fu*, W.-j. Li*, (2024) \textit{Universality of pseudo-Goldstone damping near critical points},  \href{https://doi.org/10.1038/s41467-025-58170-1}{\textcolor{blue}{Nat Commun. 16, 2916 (2025)}} [\href{https://arxiv.org/abs/2403.03503}{\textcolor{blue}{arXiv:2403.03503}}]
+
+\item W.-j. Fu, C. Huang*, J. M. Pawlowski, \textbf{Y.-y. Tan}, (2024) \textit{Four-quark scatterings in QCD II},\\
+\href{{https://doi.org/10.21468/SciPostPhys.17.5.148}}{\textcolor{blue}{SciPost Phys. 17, 148 (2024)} } [\href{https://arxiv.org/abs/2401.07638}{\textcolor{blue}{arXiv:2401.07638}}]
+
+\item Y.-r. Chen, \textbf{Y.-y. Tan}, W.-j. Fu*, (2023) \textit{Critical dynamics within the real-time fRG approach}\href{{https://doi.org/10.1103/PhysRevD.109.094044}}{, \textcolor{blue}{Phys.Rev.D 109 (2024) 9, 094044}} [\href{https://arxiv.org/abs/2312.05870}{\textcolor{blue}{arXiv:2312.05870}}]
+
+\item C. Huang, \textbf{Y.-y. Tan}, R. Wen, S. Yin, W.-j. Fu*, (2023) \textit{Reconstruction of baryon number distributions}\href{{https://doi.org/10.1088/1674-1137/aceee1}}{, \textcolor{blue}{Chin. Phys. C. 47 (2023) 10, 104106}} [\href{https://arxiv.org/abs/2303.10869}{\textcolor{blue}{arXiv:2303.10869}}]
+
+\item S. Yin, \textbf{Y.-y. Tan}, W.-j. Fu*, (2023) \textit{Critical phenomena and functional renormalization group}\href{{https://dx.doi.org/10.11889/j.0253-3219.2023.hjs.46.040002}}{, \textcolor{blue}{NUCLEAR TECHNIQUES. 2023,46(04):040002-040002.}} [\href{{http://chinaxiv.org/abs/202306.00144}}{\textcolor{blue}{ChinaXiv:202306.00144}}](review article in Chinese)
+
+\item  {\textbf{Y.-y. Tan}, C. Huang, Y.-r. Chen, W.-j. Fu*}, $\mathrm{(2022)}$ \textit{Criticality of the $O(N)$ universality via global solutions to nonperturbative fixed-point equations,
+    } \href{{https://doi.org/10.1140/epjc/s10052-024-13291-7}}{\textcolor{blue}{Eur. Phys. J. C 84, 897 (2024)}} [\href{{https://arxiv.org/abs/2211.10249}}{\textcolor{blue}{arXiv:2211.10249}}]
+
+\item {W.-j. Fu, C. Huang*, J. M. Pawlowski, \textbf{Y.-y. Tan}}, $\mathrm{(2022)}$ \textit{Four-quark scatterings in QCD I},
+\\{  \href{{https://doi.org/10.21468/SciPostPhys.14.4.069}}{\textcolor{blue}{SciPost Phys. 14, 069 (2023)} }[\href{{https://arxiv.org/abs/2209.13120}}{\textcolor{blue}{arXiv:2209.13120}}]}
+
+\item {J. Braun, Y.-r. Chen, W.-j. Fu, A. Gei\ss{}el, J. Horak, C. Huang, F. Ihssen, J. M. Pawlowski, M. Reichert, F. Rennecke, \textbf{Y.-y. Tan}, S. T\"opfel, J.Wessely, N. Wink*, $\mathrm{(2022)}$} \textit{Renormalised spectral flows}\href{{https://doi.org/10.21468/SciPostPhysCore.6.3.061}}{, \textcolor{blue}{SciPost Phys.Core 6 (2023) 061}} [\href{{https://arxiv.org/abs/2206.10232}}{\textcolor{blue}{arXiv:2206.10232}}]
+
+\item \textbf{Y.-y. Tan}, Y.-r. Chen, W.-j. Fu* $\mathrm{(2021)}$ \textit{Real-time dynamics of the $O(4)$ scalar theory within the fRG approach}{,  \href{{https://doi.org/10.21468/SciPostPhys.12.1.026}}{\textcolor{blue}{SciPost Phys. 12, 026 (2022)} }[\href{{https://arxiv.org/abs/2107.06482}}{\textcolor{blue}{arXiv:2107.06482}}]}
+\end{enumerate}
+\vspace{0.4cm}
+
+\large{\textbf{(2). Undergoing peer review process}}
+\normalsize\vspace{1ex}
+
+
+\begin{enumerate}
+\item \textbf{Y.-y. Tan*}, W.-j. Fu*, L. He*, L. Wang*, (2026) \textit{Solving Functional Renormalization Group Equations with Neural Networks} [\href{https://arxiv.org/abs/2603.21151}{\textcolor{blue}{arXiv:2603.21151}}]
+
+\item \textbf{Y.-y. Tan}, S. Yin, Y.-r. Chen, C. Huang, W.-j. Fu*, (2025) \textit{Real-time evolution of critical modes in the QCD phase diagram} [\href{https://arxiv.org/abs/2512.03614}{\textcolor{blue}{arXiv:2512.03614}}]
+
+\end{enumerate}
+
+% \vspace{0.4cm}
+
+% \large{\textbf{(3). To appear}}
+% \normalsize\vspace{1ex}
+
+
+% \begin{enumerate}
+% \item (none at this time)
+% \end{enumerate}
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{B. Oral Presentations}}}
+\vspace{0.5cm}
+\begin{enumerate}
+\item {\textit{Universal Pseudo-Goldstone Damping from the Real-Time fRG}\newline{}\href{https://indico.ihep.ac.cn/event/25688/}{\textcolor{blue}{The QCD Phase Diagram: From Theory to Experimental Signatures}}\\
+8 to 11 October 2025}
+
+\item {\textit{Universal Pseudo-Goldstone Damping from the Real-Time Functional Renormalization Group}\newline{}\href{https://ithems.riken.jp/en/events/universal-pseudo-goldstone-damping-from-the-real-time-functional-renormalization-group}{\textcolor{blue}{RIKEN Seminar}}\\
+26 June 2025 (invited talk)}
+
+\item {\textit{Can we infer probability distributions from cumulants? Probabilistic approaches to inverse problems}\newline{}\href{https://ithems.riken.jp/en/events/can-we-infer-probability-distributions-from-cumulants-probabilistic-approaches-to-inverse-problems}{\textcolor{blue}{DEEP-IN Seminar at RIKEN}}\\
+18 March 2025 (invited talk)}
+
+\item {\textit{Real-time dynamics of pseudo-Goldstone and critical mode in QCD}\newline{}\href{https://indico.cern.ch/event/1374713/}{\textcolor{blue}{The 20th International Conference on QCD in Extreme Conditions(XQCD 2024)}}
+\newline{} 17 to 19 July 2024}
+
+
+\item {\textit{Methods and Applications of Solving Inverse Problems}\newline{} \href{https://snst.lzu.edu.cn/xueshujiaoliu/2023/1220/237046.html}{\textcolor{blue}{Nuclear Science and Technology Youth Forum}}
+\newline{} 22 December 2023 (invited talk)}
+
+\item {\textit{Real-time dynamics of the $O(N)$ scalar theory within the fRG approach}\newline{} \href{https://sites.google.com/view/funqcd22/}{\textcolor{blue}{FunQCD: from first principles to effective theories}}\newline{} 13 to 17 June 2022 (online)}
+
+\item {\textit{Real time dynamics of the $O(4)$ scalar theory within the fRG approach}\newline{} \href{https://indico.ihep.ac.cn/event/13478/}{\textcolor{blue}{The 14th Workshop on QCD Phase Transition and Relativistic Heavy-ion Physics (QPT 2021)}}\newline{}26 to 30 July 2021}
+
+\item {\textit{Real time dynamics of the $O(4)$ scalar theory within the fRG approach}\newline{} \href{https://funqcd.blogs.uv.es/}{\textcolor{blue}{FunQCD: from first principles to effective theories}}\newline{}29 March to 1 April 2021 (Flash talk)}
+\end{enumerate}
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{C. Poster Presentations}}}
+\vspace{0.5cm}
+\begin{enumerate}
+\item {\textit{Critical behaviors of the $O(N)$ scalar theory via global solutions to the nonperturbative flow equations}\newline{}The 19th China National Conference on Intermediate and High Energy Nuclear Physics\\
+6 to 10 May 2023}
+\end{enumerate}
+
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{D. Patents}}}
+\vspace{0.5cm}
+
+\end{document}

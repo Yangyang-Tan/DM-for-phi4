@@ -1,0 +1,63 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage [T1]{fontenc}
+\usepackage{ragged2e}
+\usepackage{soul}
+\newcommand\dunderline[3][-2pt]{%
+  \sbox0{#3}%
+  \ooalign{\copy0\cr\rule[\dimexpr#1-#2\relax]{\wd0}{#2}}}
+\usepackage[top=1.5cm, bottom=1.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{graphicx} 
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tabulary}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=cyan,
+	filecolor=blue,      
+	urlcolor=blue,
+	citecolor=blue,
+}
+\usepackage{multicol}
+
+% Remove page numbers
+% \pagenumbering{gobble}
+
+\begin{document}
+\begin{center}
+    \textbf{\dunderline{1.5pt}{\LARGE Research Achievements}}
+\end{center}
+
+\vspace{0.3cm}
+\dunderline{1.5pt}{\large{\textbf{Name:} Yang-yang Tan}}
+
+\vspace{0.3cm}
+\noindent
+My research focuses on non-perturbative quantum field theory, real-time dynamics, and the application of machine learning to renormalization group methods. I have 15 publications (\href{https://inspirehep.net/authors/1889875}{\textcolor{blue}{INSPIRE}}), 5 as major contributions.
+During my PhD, I developed the real-time functional renormalization group (fRG) method on the Schwinger-Keldysh contour and applied it to the $O(4)$ scalar theory, obtaining spectral functions and dynamic critical exponents [4]. I then established high-precision numerical methods for fixed-point equations [5], which has been applied to calculate the dynamical critical exponents for Model A and Model H. Building on this foundation, I discovered a universal damping relation for pseudo-Goldstone modes near criticality, published in Nature Communications [3]. After my PhD, I extended this line of work to the QCD phase diagram, extracting the relaxation time of the critical mode near the critical end point in 3+1 dimensions [2]. Most recently, I have begun developing physics-informed neural networks for solving fRG flow equations [1], bridging machine learning and non-perturbative field theory.
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}, itemsep=6pt]
+
+\item \textbf{Y.-y. Tan}, W.-j. Fu, L. He, L. Wang, \textit{Solving Functional Renormalization Group Equations with Neural Networks}, [\href{https://arxiv.org/abs/2603.21151}{\textcolor{blue}{arXiv:2603.21151}}] (2026)
+
+We embed fRG flow equations into the loss function of a neural network to obtain continuous representations of the effective potential without precomputed data. A large-$N$ / finite-$N$ decomposition mitigates stiffness in the broken phase. The method works across symmetric, broken, and critical regimes and also solves the Wilson-Fisher fixed-point equation. \textit{I conceived the methodology,  performed all calculations, and wrote the manuscript.}
+
+\item \textbf{Y.-y. Tan}, S. Yin, Y.-r. Chen, C. Huang, W.-j. Fu, \textit{Real-time evolution of critical modes in the QCD phase diagram}, [\href{https://arxiv.org/abs/2512.03614}{\textcolor{blue}{arXiv:2512.03614}}] (2025, under review at Phys.\ Rev.\ Lett.)
+
+We simulate a Langevin equation for the critical mode in 3+1 dimensions with an effective potential from first-principle fRG-QCD, extracting the relaxation time across the QCD phase diagram. The relaxation time drops quickly away from the critical end point and is small along freeze-out lines, suggesting limited effects of critical slowing down on observables. \textit{I completed all the derivations, performed all simulations, and wrote the manuscript.}
+
+\item \textbf{Y.-y. Tan}, Y.-r. Chen, W.-j. Fu, W.-j. Li, \textit{Universality of pseudo-Goldstone damping near critical points}, \href{https://doi.org/10.1038/s41467-025-58170-1}{\textcolor{blue}{Nat.~Commun.~16, 2916 (2025)}} [\href{https://arxiv.org/abs/2403.03503}{\textcolor{blue}{arXiv:2403.03503}}]
+
+We discover that the conventional damping-mass relation for pseudo-Goldstones breaks down near criticality and is replaced by a universal scaling $\Omega_\varphi / m_\varphi^2 \propto m_\varphi^{\Delta_\eta}$, which evolves into the conventional relation at large $N$ and persists when pion propagation is included. \textit{I completed the major derivation and all numerical calculations, and wrote part of the manuscript.}
+
+\item \textbf{Y.-y. Tan}, Y.-r. Chen, W.-j. Fu, \textit{Real-time dynamics of the $O(4)$ scalar theory within the fRG approach}, \href{https://doi.org/10.21468/SciPostPhys.12.1.026}{\textcolor{blue}{SciPost Phys.~12, 026 (2022)}} [\href{https://arxiv.org/abs/2107.06482}{\textcolor{blue}{arXiv:2107.06482}}]
+
+We develop the real-time fRG on the Schwinger-Keldysh contour for the $O(4)$ scalar theory, obtaining spectral functions across the phase diagram and extracting the dynamic critical exponent. \textit{I completed part of the derivation and the major numerical calculations.}
+
+\item \textbf{Y.-y. Tan}, C. Huang, Y.-r. Chen, W.-j. Fu, \textit{Criticality of the $O(N)$ universality via global solutions to nonperturbative fixed-point equations}, \href{https://doi.org/10.1140/epjc/s10052-024-13291-7}{\textcolor{blue}{Eur.~Phys.~J.~C 84, 897 (2024)}} [\href{https://arxiv.org/abs/2211.10249}{\textcolor{blue}{arXiv:2211.10249}}]
+
+We develop a method for solving fixed-point equations by integrating from large to vanishing field values, obtaining a global potential with high accuracy and computing eigenfunctions of the Wilson-Fisher fixed point. \textit{I conceived the idea, completed all derivations and calculations, and wrote the major part of the manuscript.}
+
+\end{enumerate}
+
+\end{document}

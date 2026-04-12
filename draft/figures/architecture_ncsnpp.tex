@@ -1,0 +1,232 @@
+\documentclass[border=3pt]{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc}
+\usepackage{xcolor}
+
+% ── Print-friendly palette ───────────────────────────────────
+\definecolor{enc}{HTML}{D6E9F8}     \definecolor{encB}{HTML}{5B9BD5}
+\definecolor{dec}{HTML}{FDE5CC}     \definecolor{decB}{HTML}{ED7D31}
+\definecolor{mid}{HTML}{D5E8D4}     \definecolor{midB}{HTML}{82B366}
+\definecolor{io}{HTML}{EBEBEB}      \definecolor{ioB}{HTML}{808080}
+\definecolor{temb}{HTML}{FFF2CC}    \definecolor{tembB}{HTML}{D6B656}
+\definecolor{samp}{HTML}{E8D5F5}    \definecolor{sampB}{HTML}{9B72CF}
+
+\begin{document}
+\begin{tikzpicture}[
+    >=Stealth,
+    % ── main block ────────────────────────────────────────────
+    block/.style={draw, thick, rounded corners=3pt,
+                  minimum height=0.68cm, align=center,
+                  font=\footnotesize, inner sep=5pt},
+    encb/.style ={block, fill=enc,  draw=encB,  minimum width=2.7cm},
+    decb/.style ={block, fill=dec,  draw=decB,  minimum width=2.7cm},
+    midb/.style ={block, fill=mid,  draw=midB,  minimum width=3.2cm},
+    iob/.style  ={block, fill=io,   draw=ioB,   minimum width=2.7cm},
+    % ── down / up-sample block ────────────────────────────────
+    sampb/.style={draw, thick, rounded corners=2pt,
+                  fill=samp, draw=sampB,
+                  minimum height=0.46cm, minimum width=2.7cm,
+                  align=center, font=\scriptsize, inner sep=4pt},
+    % ── ResBlock inset ────────────────────────────────────────
+    rb/.style     ={draw, thick, rounded corners=2pt, fill=white,
+                    minimum height=0.46cm, minimum width=2.3cm,
+                    align=center, font=\scriptsize, inner sep=3pt},
+    rbconv/.style ={rb, fill=enc,  draw=encB},
+    rbnorm/.style ={rb, fill=mid,  draw=midB},
+    rbtemb/.style ={rb, fill=temb, draw=tembB},
+    % ── arrows ────────────────────────────────────────────────
+    arr/.style     ={-{Stealth[length=5pt,width=3.5pt]}, thick},
+    skiparr/.style ={-{Stealth[length=4pt,width=3pt]}, thick,
+                     densely dashed, color=ioB},
+    % ── labels ────────────────────────────────────────────────
+    lbl/.style    ={font=\scriptsize, text=black!55},
+    reslbl/.style ={font=\scriptsize\itshape, text=black!40},
+]
+
+% ═════════════════════════════════════════════════════════════
+%  Layout
+% ═════════════════════════════════════════════════════════════
+\def\dx{8.8}          % encoder ↔ decoder horizontal offset
+\def\mx{4.4}          % centre x (bottleneck / time-emb)
+\def\dy{0.85}         % uniform vertical step
+\def\base{-0.25}      % y of conv-in / conv-out row
+
+% ═════════════════════════════════════════════════════════════
+%  (a)  U-Net overview
+% ═════════════════════════════════════════════════════════════
+\node[font=\bfseries\normalsize, anchor=north west] at (-2.5, 2.35) {(a)};
+
+% ── time embedding ────────────────────────────────────────────
+\node[block, fill=temb, draw=tembB,
+      minimum width=6.0cm, font=\footnotesize] (temb) at (\mx, 1.85)
+    {$t\;\;\xrightarrow{\;\;\text{GFP}\;\;}\;\;
+           \xrightarrow{\;\;\text{MLP\,+\,SiLU}\;\;}\;\;
+     t_{\mathrm{emb}}\,\in\,\mathbb{R}^{d_e}$};
+\draw[arr, densely dotted, tembB, line width=1pt]
+    (temb.south) -- ++(0,-0.45)
+    node[below, font=\scriptsize, text=tembB!85!black, align=center]
+    {additive to every ResBlock};
+
+% ── column headers ────────────────────────────────────────────
+\node[font=\small\bfseries, text=encB!85!black]  at (0,   1.05) {Encoder};
+\node[font=\small\bfseries, text=decB!85!black]  at (\dx, 1.05) {Decoder};
+
+% ── input / output ────────────────────────────────────────────
+\node[font=\small] (inp)  at (0,   0.50)
+    {$\phi\;\in\;\mathbb{R}^{1\times L^{D}}$};
+\node[font=\small] (outp) at (\dx, 0.50)
+    {$s_\theta(\phi,t)\,/\,\sigma(t)$};
+
+% ═════════════════════════════════════════════════════════════
+%  ENCODER  (left column, top → bottom)
+% ═════════════════════════════════════════════════════════════
+\node[iob]   (cin) at (0, \base)
+    {\strut Conv$_3$ (circ.)};
+
+\node[encb]  (e1)  at (0, \base-\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[sampb] (sd1) at (0, \base-2*\dy)
+    {\strut Conv$_3$\,stride\,2};
+
+\node[encb]  (e2)  at (0, \base-3*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[sampb] (sd2) at (0, \base-4*\dy)
+    {\strut Conv$_3$\,stride\,2};
+
+\node[encb]  (e3)  at (0, \base-5*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[sampb] (sd3) at (0, \base-6*\dy)
+    {\strut Conv$_3$\,stride\,2};
+
+\node[encb]  (e4)  at (0, \base-7*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+% ── resolution annotations ────────────────────────────────────
+\node[reslbl, anchor=east] at ([xshift=-5pt]e1.west)
+    {$L^{D}$};
+\node[reslbl, anchor=east] at ([xshift=-5pt]e2.west)
+    {$\bigl(\!\tfrac{L}{2}\!\bigr)^{\!D}$};
+\node[reslbl, anchor=east] at ([xshift=-5pt]e3.west)
+    {$\bigl(\!\tfrac{L}{4}\!\bigr)^{\!D}$};
+\node[reslbl, anchor=east] at ([xshift=-5pt]e4.west)
+    {$\bigl(\!\tfrac{L}{8}\!\bigr)^{\!D}$};
+
+% ═════════════════════════════════════════════════════════════
+%  BOTTLENECK
+% ═════════════════════════════════════════════════════════════
+\node[midb] (mid) at (\mx, \base-8.4*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+% ═════════════════════════════════════════════════════════════
+%  DECODER  (right column, bottom → top)
+% ═════════════════════════════════════════════════════════════
+\node[decb]  (d4)  at (\dx, \base-7*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[sampb] (su3) at (\dx, \base-6*\dy)
+    {\strut Interp\,$\uparrow\!2$\,+\,Conv$_3$};
+
+\node[decb]  (d3)  at (\dx, \base-5*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[sampb] (su2) at (\dx, \base-4*\dy)
+    {\strut Interp\,$\uparrow\!2$\,+\,Conv$_3$};
+
+\node[decb]  (d2)  at (\dx, \base-3*\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[sampb] (su1) at (\dx, \base-2*\dy)
+    {\strut Interp\,$\uparrow\!2$\,+\,Conv$_3$};
+
+\node[decb]  (d1)  at (\dx, \base-\dy)
+    {\strut ResBlock\,$\times\!2$};
+
+\node[iob]   (cout) at (\dx, \base)
+    {\strut GN\,$\to$\,SiLU\,$\to$\,Conv$_3$};
+
+% ═════════════════════════════════════════════════════════════
+%  ENCODER ARROWS
+% ═════════════════════════════════════════════════════════════
+\draw[arr] (inp) -- (cin);
+\draw[arr] (cin) -- (e1);
+\draw[arr] (e1)  -- (sd1);
+\draw[arr] (sd1) -- (e2);
+\draw[arr] (e2)  -- (sd2);
+\draw[arr] (sd2) -- (e3);
+\draw[arr] (e3)  -- (sd3);
+\draw[arr] (sd3) -- (e4);
+
+% encoder → bottleneck
+\draw[arr] (e4.south) |- (mid.west);
+
+% ═════════════════════════════════════════════════════════════
+%  DECODER ARROWS
+% ═════════════════════════════════════════════════════════════
+% bottleneck → decoder
+\draw[arr] (mid.east) -| (d4.south);
+
+\draw[arr] (d4)  -- (su3);
+\draw[arr] (su3) -- (d3);
+\draw[arr] (d3)  -- (su2);
+\draw[arr] (su2) -- (d2);
+\draw[arr] (d2)  -- (su1);
+\draw[arr] (su1) -- (d1);
+\draw[arr] (d1)  -- (cout);
+\draw[arr] (cout) -- (outp);
+
+% ═════════════════════════════════════════════════════════════
+%  SKIP CONNECTIONS
+% ═════════════════════════════════════════════════════════════
+\draw[skiparr] (e1.east)
+    -- node[above, lbl] {concat\,$\times\!2$} (d1.west);
+\draw[skiparr] (e2.east)
+    -- node[above, lbl] {concat\,$\times\!2$} (d2.west);
+\draw[skiparr] (e3.east)
+    -- node[above, lbl] {concat\,$\times\!2$} (d3.west);
+\draw[skiparr] (e4.east)
+    -- node[above, lbl] {concat\,$\times\!2$} (d4.west);
+
+% ═════════════════════════════════════════════════════════════
+%  (b)  ResBlock detail
+% ═════════════════════════════════════════════════════════════
+\node[font=\bfseries\normalsize, anchor=north west] at (11.5, 2.35) {(b)};
+
+\begin{scope}[xshift=12.8cm, yshift=0cm]
+
+    % title
+    \node[font=\normalsize\bfseries, anchor=south] at (0, 1.55) {ResBlock};
+
+    % background card
+    \draw[thick, rounded corners=5pt, fill=gray!3, draw=black!20]
+        (-1.65, -5.55) rectangle (1.65, 1.30);
+
+    % nodes
+    \node[rb]     (ri)  at (0,  0.90) {\strut input\;$\mathbf{h}$};
+    \node[rbconv] (rc1) at (0,  0.10) {\strut Conv$_3$\,(circ.\,pad)};
+    \node[rbtemb] (rte) at (0, -0.75) {\strut $\mathbf{+}\;t_{\mathrm{emb}}$};
+    \node[rbnorm] (rn1) at (0, -1.60) {\strut GroupNorm\,+\,SiLU};
+    \node[rbconv] (rc2) at (0, -2.45) {\strut Conv$_3$\,(circ.\,pad)};
+    \node[rbnorm] (rn2) at (0, -3.30) {\strut GroupNorm\,+\,SiLU};
+    \node[rb]     (ro)  at (0, -4.20) {\strut output};
+
+    % arrows
+    \draw[arr, thin] (ri)  -- (rc1);
+    \draw[arr, thin] (rc1) -- (rte);
+    \draw[arr, thin] (rte) -- (rn1);
+    \draw[arr, thin] (rn1) -- (rc2);
+    \draw[arr, thin] (rc2) -- (rn2);
+    \draw[arr, thin] (rn2) -- (ro);
+
+    % annotation
+    \node[font=\scriptsize\itshape, text=black!40, align=center]
+        at (0, -5.05) {no residual\\[-1pt]connection};
+
+\end{scope}
+
+\end{tikzpicture}
+\end{document}

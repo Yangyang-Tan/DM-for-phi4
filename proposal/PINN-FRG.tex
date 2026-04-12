@@ -1,0 +1,591 @@
+\documentclass[reprint,twocolumn,superscriptaddress,preprintnumbers,amsmath,amssymb,aps,prd,floatfix]{revtex4-2}
+
+%%%%%%%%%%%%% Packages %%%%%%%%%%%%%
+
+% general
+\usepackage[utf8]{inputenc}
+
+
+
+% math
+\usepackage{mathtools}
+\usepackage{amsfonts}
+\usepackage{mathrsfs}
+\usepackage{bm}
+\usepackage[normalem]{ulem}
+\usepackage{bbold}
+\usepackage{braket}
+\usepackage{slashed}
+\usepackage{dsfont}
+\usepackage{float}
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{amssymb,amsmath}
+% \usepackage{titlesec}
+
+% graphics and colors
+\usepackage{graphicx}
+%%\usepackage{subcaption}
+\usepackage{color}
+\usepackage{array}
+
+% floats
+\usepackage{placeins}
+\usepackage{booktabs}
+%\usepackage[format=plain]{caption}
+%\usepackage{caption}
+%\usepackage{subcaption}
+
+% units and refs
+\usepackage{xspace}
+% \usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage[nameinlink]{cleveref}
+\usepackage{bookmark}
+\usepackage{units}
+
+
+%%%%%%%%%%%%% Options %%%%%%%%%%%%%
+
+\setkeys{Gin}{width=0.48\textwidth}
+
+%\captionsetup{justification=centerlast,singlelinecheck=false}
+% \sisetup{range-units=single,binary-units=true}
+
+\newcommand{\tr}{{\text{tr}}}
+
+
+
+
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\newcommand{\ra}[1]{\renewcommand{\arraystretch}{#1}}
+\newcolumntype{C}{>{$}c<{$}}
+\AtBeginDocument{
+	\heavyrulewidth=.08em
+	\lightrulewidth=.05em
+	\cmidrulewidth=.03em
+	\belowrulesep=.65ex
+	\belowbottomsep=0pt
+	\aboverulesep=.4ex
+	\abovetopsep=0pt
+	\cmidrulesep=\doublerulesep
+	\cmidrulekern=.5em
+	\defaultaddspace=.5em
+}
+
+%%%%%%%%%%%%% Math commands %%%%%%%%%%%%%
+% symbols
+\newcommand{\sumint}{\int\hspace{-4.8mm}\sum}
+\newcommand{\imag}{\text{i}}
+
+\newcommand{\tinytext}[1]{\text{\tiny{#1}}}
+
+%%%%%%%%%%%%% Graphic paths %%%%%%%%%%%%%
+\graphicspath{{./figures/}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% other
+\usepackage{xifthen}
+\usepackage{xcolor}
+\def\eq#1{\eqref{#1}}
+%\def\eqs#1{(\ref{#1})}
+\def\Eq#1{Eq.~\eqref{#1}}
+\def\Eqs#1{Eqs.~\eqref{#1}}
+
+\def\fig#1{Fig.~\ref{#1}}
+\def\Fig#1{Fig.~\ref{#1}}
+\def\figs#1#2{Figs.~\ref{#1} and \ref{#2}}
+\def\Figs#1#2{Figs.~\ref{#1} and \ref{#2}}
+\def\Tab#1{Tab.~\ref{#1}}
+\def\tab#1{Tab.?~\ref{#1}}
+\def\Sec#1{Sec.~\ref{#1}}
+%\def\Secs#1#2{Sections~\ref{#1} and \ref{#2}}
+\def\App#1{App.~\ref{#1}}
+
+%%%%%%%%%%%%% Comments %%%%%%%%%%%%%
+\newcommand{\colwj}[1]{\textcolor{red}{#1}}
+
+
+
+% \newcommand{\gettitle}{Physics-Driven Learning for Solving Functional Renormalization Group Equations}
+\newcommand{\gettitle}{Solving Functional Renormalization Group Equations with Neural Networks}
+
+
+\hypersetup{
+	colorlinks,
+	linkcolor={blue!75!black},
+	citecolor={blue!75!black},
+	urlcolor={blue!75!black}, 
+	%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+	pdftitle={\gettitle},
+	pdfauthor={},
+	pdfkeywords={}
+	{} 
+	bookmarksopen=true,
+	bookmarksopenlevel=2,
+	bookmarksnumbered=true
+}
+
+
+\begin{document}
+\preprint{RIKEN-iTHEMS-Report-26}
+
+
+\title{\gettitle}
+\author{Yang-yang Tan}
+\email{yangyang-tan@foxmail.com}
+\affiliation{School of Physics, Dalian University of Technology, Dalian, 116024, China}
+\affiliation{Department of Physics, Tsinghua University, Beijing 100084, China}
+\affiliation{Institute for Physics of Intelligence, Graduate School of Science, The University of Tokyo, Bunkyo-ku, Tokyo 113-0033, Japan}
+
+\author{Wei-jie Fu}
+\email{wjfu@dlut.edu.cn}
+\affiliation{School of Physics, Dalian University of Technology, Dalian, 116024, China}
+
+\author{Lianyi He}
+\email{lianyi@mail.tsinghua.edu.cn}
+\affiliation{Department of Physics, Tsinghua University, Beijing 100084, China}
+
+\author{Lingxiao Wang}
+\email{lingxiao.wang@riken.jp}
+\affiliation{RIKEN Center for Interdisciplinary Theoretical and Mathematical Sciences (iTHEMS), Wako, Saitama 351-0198, Japan}
+\affiliation{Institute for Physics of Intelligence, Graduate School of Science, The University of Tokyo, Bunkyo-ku, Tokyo 113-0033, Japan}
+
+\date{\today}
+
+
+\begin{abstract}
+We employ deep neural networks to represent the field derivative of the scale-dependent effective potential in the functional renormalization group (fRG) framework for nonperturbative quantum field theory. By embedding the fRG flow equations directly into the loss function, the network parameters are determined so as to provide a continuous and differentiable representation of the scale- and field-dependent effective potential without relying on precomputed training data. Focusing on the $O(N)$ scalar field theory within the local potential approximation at finite temperature, we demonstrate that this neural network representation accurately captures the renormalization group flow across symmetric, broken, and critical regimes. A key ingredient is a decomposition of the representation into an analytically known large-$N$ contribution and a learned finite-$N$ correction, which efficiently mitigates numerical stiffness associated with convexity restoration in the broken phase. The physics-dirven solutions show excellent agreement with established finite-difference and discontinuous Galerkin methods. We further apply the same strategy to the Wilson–Fisher fixed point equation in three dimensions, illustrating that neural network representations provide a unified framework for both scale-dependent flows and fixed-point problems. Our results indicate that physics-driven deep learning offers a robust and flexible numerical tool for functional renormalization group studies.
+\end{abstract}
+
+
+\maketitle
+
+	
+
+
+\section{Introduction}
+
+Understanding the non-perturbative dynamics of strongly correlated quantum systems remains one of the central challenges in modern theoretical physics. From the confinement of quarks and the phase diagram of quantum chromodynamics (QCD) at finite temperature and density, to quantum phase transitions and critical phenomena in condensed matter systems, many of the most fascinating physical phenomena occur in regimes where conventional perturbative expansions fail. The functional renormalization group (fRG)~\cite{Wetterich:1992yh} has emerged as a preeminent non-perturbative tool for addressing these challenges, implementing Kenneth Wilson's renormalization group philosophy~\cite{Wilson:1971bg, Wilson:1971dh, Wilson:1971dc, Wilson:1973jj} by systematically integrating out fluctuations scale by scale.
+
+The fRG is built upon the Wetterich equation~\cite{Wetterich:1992yh} , an exact functional differential equation governing the scale dependence of the effective action $\Gamma_k[\phi]$. By introducing a momentum-dependent infrared regulator, the fRG smoothly interpolates between the classical action in the ultraviolet (UV) and the full quantum effective action in the infrared (IR). This approach has proven remarkably successful across diverse areas of physics, including the critical phenomena for strong correlated systems~\cite{Berges:2000ew,Canet:2006xu, Canet:2011wf, Mesterhazy:2013naa, Bluhm:2018qkf, Roth:2023wbp, Tan:2024fuq, Chen:2024lzz, Roth:2024rbi, Roth:2024hcu}, the QCD phase diagram~\cite{Braun:2014ata, Mitter:2014wpa, Rennecke:2015eba, Cyrol:2016tym, Cyrol:2017qkl, Cyrol:2017ewj, Fu:2019hdw, Braun:2020ada,Ihssen:2024miv,Pawlowski:2025jpg}, and the quantum gravity. One can refer to relevant reviews, e.g.,~\cite{Berges:2000ew, Pawlowski:2005xe, Braun:2011pp, Dupuis:2020fhh, Fu:2022gou} for more details.
+
+Despite its conceptual elegance and broad applicability, practical calculations of fRG usually have to face significant computational challenges. The Wetterich equation involves infinite-dimensional functional spaces that necessitate systematic truncation schemes such as the derivative expansion or the vertex expansion. Even after truncation, the finite sets of flow equations are still challenging to be solved numerically in many cases.
+
+In recent years, machine learning (ML) has emerged as a transformative tool across many branches of physics, offering new approaches to longstanding computational and theoretical challenges, especially in the QCD physics~\cite{Boehnlein:2021eym,Zhou:2023pti,Aarts:2025gyp}. Within the context of quantum field theory, ML techniques have found applications in lattice QCD simulations~\cite{Boyda:2022nmh,Cranmer:2023xbe,Aarts:2025gyp}, including generating gauge field configurations and accelerating Monte Carlo sampling. Diffusion models, connected to the stochastic quantization, have shown particular promise for lattice field theory simulations~\cite{Wang:2023exq,Wang:2023sry,Zhu:2024kiu,Zhu:2025pmw,Aarts:2026zzr}. A particularly powerful paradigm is physics-informed~\cite{RAISSI2019686,Karniadakis2021} or physics-driven learning~\cite{Aarts:2025gyp}, where physical laws and symmetries are directly embedded into the network architecture or loss function, enabling solutions that respect the underlying physics by construction.
+
+In this work, we introduce a novel computational approach in which a neural network is used to represent the field derivative of the effective potential, with the fRG flow equations embedded directly into the loss function to determine the network parameters. This idea draws on the physics-informed neural network (PINN)~\cite{RAISSI2019686,Karniadakis2021}, which incorporates governing differential equations, boundary conditions, and initial conditions simultaneously into the loss function and has demonstrated remarkable success across scientific computing, including fluid dynamics, solid mechanics, etc. Recently, PINNs have been applied to solve the functional renormalization group equations on lattices~\cite{Yokota:2023czk}, or functional differential equations more generally~\cite{Miyagawa:2024yrw}, and the Dyson-Schwinger equations~\cite{Terin:2024iyy,CarmoTerin:2025pvs}. In contrast to the standard PINNs, our approach uses only the PDE residual of the fRG flow equation as the loss function, without imposing explicit boundary or initial conditions as additional constraints. In our case, we show that the neural network representations of the effective potential provide an effective approach for the fRG calculations.
+
+We demonstrate our approach with the $O(N)$ scalar field theory within the local potential approximation (LPA), a paradigmatic model that captures the essential physics of spontaneous symmetry breaking and critical phenomena. The $O(N)$ model encompasses a wide range of universality classes, including the Ising model ($N=1$) for the liquid-gas and magnetic transitions, the XY model ($N=2$) for the superfluidity, the Heisenberg model ($N=3$) for the ferro(antiferro)-magnetism, and the linear sigma model ($N=4$) relevant for the chiral phase transition in two-flavor QCD. We solve the fRG flow equations at finite temperature across both the symmetric and broken phases, as well as the fixed point equation characterizing the Wilson-Fisher universality class. In all cases, the neural network results show excellent agreement with those obtained from well-established numerical methods, e.g., the Finite Difference Method and the Local Discontinuous Galerkin (LDG). More importantly, it offers a unified framework that naturally handles the stiffness and multi-scale structure of the flow.
+
+This paper is organized as follows. In \Cref{sec:fRG} we provide a brief introduction about the fRG, including some theoretical basics, truncation schemes as well as some necessary notations. In \Cref{sec:ON} we present the fRG flow equations for the $O(N)$ model and the analytical large-$N$ solutions required for our methodology, with detailed derivations collected in \App{app:derivations}. In \Cref{sec:PINN} we discuss our neural network methodology, including the network architecture, loss function construction, and training strategies, followed by numerical results for the effective potential, physical observables, and the Wilson-Fisher fixed point. Finally, we summarize our findings and discuss future directions in \Cref{sec:conclusion}.
+
+\section{The functional renormalization group method}
+\label{sec:fRG}
+The central insight underlying the fRG stems from Wilson's RG that the physics at different energy scales can be systematically separated and integrated out sequentially. In conventional quantum field theory, the path integral involves integration over all field configurations at all momentum scales simultaneously, making non-perturbative calculations intractable. The fRG resolves this by introducing a momentum-dependent infrared regulator that suppresses fluctuations below a running cutoff scale $k$, enabling the successive integration of quantum fluctuations from the UV to the IR scales.
+
+The central object in fRG is the scale-dependent effective action $\Gamma_k[\phi]$, which interpolates between the classical action at the UV cutoff $\Lambda$ and the full quantum effective action in the IR limit:
+\begin{align}
+\Gamma_{k=\Lambda}[\phi] &= S[\phi] \quad \text{(classical action)}, \\
+\Gamma_{k \to 0}[\phi] &= \Gamma[\phi] \quad \text{(full quantum effective action)}.
+\end{align}
+In this work we consider the case that $\phi$ represent the scalar field.
+
+The effective action $\Gamma_k[\phi]$ is defined through a modified Legendre transform of the scale-dependent generating functional $W_k[J]$:
+\begin{align}
+\Gamma_k[\phi] + \Delta S_k[\phi] = \sup_J \left\{ \int J(x) \phi(x) - W_k[J] \right\},
+\label{eq:Gamma_k_def}
+\end{align}
+where $\Delta S_k[\phi] = \frac{1}{2} \int \phi R_k \phi$ is the regulator which behaves like a mass term that suppresses IR fluctuations below the scale $k$.
+
+The infrared regulator $R_k(p^2)$ plays a crucial role in the fRG formalism. It must satisfy several key properties:
+\begin{itemize}
+\item \textbf{IR suppression}: $R_k(p^2) > 0$ as $p^2 \to 0$ for fixed $k > 0$, suppressing low-momentum fluctuations.
+\item \textbf{UV limit}: $R_k(p^2) \to \infty$ at the initial scale $k=\Lambda \to \infty$, which ensures the classical limit $\Gamma_{k=\Lambda}[\phi] = S[\phi]$.
+\item \textbf{Physical limit}: $R_k(p^2) \to 0$ as $k \to 0$, where all quantum fluctuations are taken into account, yielding $\Gamma_{k \to 0}[\phi] = \Gamma[\phi]$ as the regulator is removed.
+\end{itemize}
+
+A particularly effective choice is the optimized Litim regulator~\cite{Litim:2000ci,Litim:2001up},
+\begin{align}
+R_k(p^2) = Z_{\phi,k} p^2 \left( \frac{k^2}{p^2} - 1 \right) \Theta(k^2 - p^2)\,, \label{eq:litim_regulator}
+\end{align}
+which provides optimal convergence properties~\cite{Litim:2001up} in the local potential approximation (LPA) and simplifies many calculations while maintaining the essential physics. The choice of regulator can be formulated as an optimization problem~\cite{Pawlowski:2005xe,Pawlowski:2015mlf}, which is also amenable to deep learning methods, and we hope to report our progress on this in the future.
+
+
+The evolution of $\Gamma_k[\phi]$ with the RG scale is governed by the Wetterich equation:
+\begin{align}
+\partial_t \Gamma_k[\phi] = \frac{1}{2} \text{Tr} \left[ \partial_t R_k \left( \Gamma_k^{(2)}[\phi] + R_k \right)^{-1} \right]\,,
+\label{eq:wetterich}
+\end{align}
+where $\partial_t \equiv k \partial_k$ denotes the RG time derivative with $t=\ln (k/\Lambda)$, $\Gamma_k^{(2)}[\phi]$ is the second functional derivative with respect to the field $\phi$, and $R_k$ is the infrared regulator function. The super-trace represents taking the trace over all internal indices as well as the momentum integration. The factor $\partial_t R_k$ ensures that only fluctuations around momentum scale $k$ contribute to the flow mostly, implementing Wilson's idea by integrating out fluctuations shell by shell in momentum space.
+
+Although the Wetterich equation is formally one-loop exact, it remains impossible to obtain a full solution for the effective action except in some special cases, e.g., the zero-dimensional QFT. To render the equation tractable, systematic non-perturbative expansion methods have been developed to truncate the effective action, including the derivative expansion (DE) and the vertex expansion (VE). These approaches have been extensively tested across multiple physical systems, often capturing the essential physics without requiring high truncation orders. However, even after truncation, it remains challenging to solve the resulting flow equations, often necessitating additional approximation techniques for numerical feasibility.
+
+In the DE, one expands the scale-dependent effective action $\Gamma_k[\phi]$ in powers of derivatives or momenta, which is valid for small momenta or long-wavelength physics~\cite{Balog:2019rrg,DePolsi:2020pjk}. This method has proved to be highly effective for studying low-energy QCD and critical phenomena in strongly correlated systems. The effective potential, comprised of the lowest-order terms in this expansion, is particularly significant as it encodes phase transition information and $n$-point vertex functions at vanishing external momenta to all orders. The flow equation for the effective potential manifests as a partial differential equation (PDE). Over the past two decades, various numerical methods have been developed to solve this equation, including expansions of the effective potential in Taylor series~\cite{Litim:2002cf} or Chebyshev polynomials~\cite{Borchardt:2015rxa,Borchardt:2016pif,Chen:2021iuo}. More recent developments involve recasting the equation in conservative form and applying modern PDE solvers such as the finite element method~\cite{Grossi:2019urj,Sattler:2024ozv} and the finite volume method~\cite{Zorbach:2024rre}. However, these approaches become increasingly complex and computationally intensive when extended to higher-dimensional field spaces.
+
+The VE offers an alternative to DE by systematically expanding the effective action in powers of the field, thereby capturing the full momentum dependence. Although we do not discuss the VE in this work, we briefly mention it here for completeness. This approach is widely employed in studies of Yang-Mills theory~\cite{Cyrol:2016tym}, QCD~\cite{Fu:2022uow,Fu:2025hcm}, and quantum gravity, where propagators and higher-order vertices exhibit non-trivial momentum structures. Additionally, the vertex expansion is crucial for investigating spectral functions in real-time fRG~\cite{Tan:2021zid}. The corresponding flow equations often take the form of functional differential-integral equations, for which there is no well-established numerical method yet. The conventional approach involves discretizing $n$-point functions on a momentum grid; however, even a simple four-point vertex function may have six degrees of freedom, and resolving its full momentum dependence would demand over a billion grid points ($32^6$), making traditional discretization methods computationally prohibitive. Further momentum-space approximations are typically required to render the problem numerically tractable. Neural network representations are well suited for such high-dimensional problems, and we plan to explore their application to the VE in future work.
+
+\section{The fRG flows in the $O(N)$ model}
+\label{sec:ON}
+The $O(N)$ model describes $N$ real scalar fields $\phi_a$ ($a = 1, \ldots, N$) with global $O(N)$ symmetry, serving as a paradigmatic system for understanding critical phenomena and phase transitions. In this work, we focus on the finite-temperature dynamics with purely dissipative relaxation (Model A in the Hohenberg-Halperin classification~\cite{Hohenberg:1977ym}), which provides a minimal description of thermal phase transitions and critical dynamics in fRG. In this section, we present the flow equations and their analytical large-$N$ solutions essential for our neural network methodology. Detailed derivations are provided in \App{app:derivations}.
+
+\subsection{Finite-temperature flow equation}
+\label{sec:flow_eq}
+In this work, we adopt the local potential approximation (LPA), for which the effective action takes the form
+\begin{align}
+\Gamma_k[\phi]=\int \mathrm{d}^d x\left[\frac{1}{2} Z_{\phi, k}\left(\partial_\mu \phi_a\right)^2+V_k(\rho)+\mathcal{O}(\partial^2)\right]\,,
+\end{align}
+where $\rho = \frac{1}{2}\phi_a \phi_a$ is the $O(N)$-invariant field combination, $Z_{\phi,k}$ is the wave-function renormalization with $Z_{\phi,k}=1$ for LPA, and $V_k(\rho)$ is the scale-dependent effective potential. We use the standard notation: $t\equiv\ln(k/\Lambda)$ for the RG time, $\eta\equiv-\partial_t\ln Z_{\phi,k}$ for the anomalous dimension, and primes for derivatives with respect to field.
+
+For finite-temperature systems with purely dissipative dynamics (Model A~\cite{Hohenberg:1977ym}), the flow equation of the effective potential reads (see \App{app:finite_T} for derivation):
+\begin{align}
+	\partial_t V_k(\rho)=\mathscr{C}T k^d\left[\frac{1}{1+\bar{m}_{\sigma, k}^2}+\frac{N-1}{1+\bar{m}_{\pi, k}^2}\right]\,,
+	\label{eq:flow_potential_modelA}
+\end{align}
+where the dimensionless curvature masses of the longitudinal ($\sigma$) and transverse ($\pi$) modes are defined as
+\begin{align}
+	\bar{m}_{\sigma, k}^2 &= \frac{V_k^{\prime}+2 \rho V_k^{(2)}}{Z_{\phi, k} k^2}\,,\nonumber\\[2ex]
+	\bar{m}_{\pi, k}^2 &= \frac{V_k^{\prime}}{Z_{\phi, k} k^2}\,.\label{}
+\end{align}
+The constant, which reads
+\begin{align}
+	\mathscr{C} \equiv \frac{1}{(4 \pi)^{d / 2} \Gamma(d / 2)}\big[(2-\eta)/d+\eta/(d+2)\big]\,,\label{}
+\end{align}
+is a geometric prefactor originating from the internal momentum integration and carries the explicit dependence on the spatial dimension $d$ in the flow equation. The factor of $T$ reflects the dominance of thermal fluctuations, which controls the overall magnitude of the fRG flow.
+
+For numerical implementation, we rescale the field and potential using the critical temperature $T_c$ as $\hat{\rho}=\rho/(\Lambda^{d-2} T_c)$ and $\hat{V}_k=V_k/(\Lambda^d T_c)$. Substituting $k=\Lambda e^t$ with $t\leq 0$ and dividing numerator and denominator of each propagator by $k^2$ yields the rescaled flow equation:
+\begin{align}
+	\partial_t \hat{V}_k(\hat{\rho})= &-\mathscr{C}\frac{T}{T_c}\mathrm{e}^{-(d+2)t}\Bigg[\frac{1}{\mathrm{e}^{-2t}+\hat{m}_{\sigma, k}^2}+\frac{N-1}{\mathrm{e}^{-2t}+\hat{m}_{\pi, k}^2}\Bigg]\,,
+	\label{eq:flow_potential_rescale}
+\end{align}
+where $\hat{m}_{\sigma, k}^2 \equiv \hat{V}'_k+2 \hat{\rho} \hat{V}''_k$ and $\hat{m}_{\pi, k}^2 \equiv \hat{V}'_k$. This is the primary equation whose solution is represented by our neural network for the finite-temperature results in \Sec{sec:PINN}.
+
+\subsection{Large-N analytic solution}
+\label{sec:largeN}
+In the large-$N$ limit, the sigma mode becomes suppressed relative to the $(N-1)$ pion modes, and the flow equation \eqref{eq:flow_potential_modelA} reduces to:
+\begin{align}
+	\partial_t V_k(\rho)=\mathscr{C}T k^d\frac{N-1}{1+\bar{m}_{\pi, k}^2}\,.
+	\label{eq:flow_potential_modelA_largeN}
+\end{align}
+
+This first-order PDE can be solved exactly using the method of characteristics (see \App{app:characteristics}). The result is an implicit solution for $U_k(\rho) \equiv V'_k(\rho)$:
+\begin{align}
+	\rho_k &= \rho_\Lambda+\frac{1}{2U}\left(\frac{k^{d+2}}{k^2+U}-\frac{\Lambda^{d+2}}{\Lambda^2+U}\right)\nonumber\\[2ex]
+	&+\frac{d}{2(d+2)U^2}\left[\Lambda^{d+2}\, _2F_1\left(1,\frac{d+2}{2};\frac{d+4}{2};-\frac{\Lambda^2}{U}\right)\right.\nonumber\\[2ex]
+	&\left. -k^{d+2} \, _2F_1\left(1,\frac{d+2}{2};\frac{d+4}{2};-\frac{k^2}{U}\right) \right]\,,
+	\label{eq:largeN_solution}
+\end{align}
+where $_2F_1$ denotes the hypergeometric function. Along each characteristic, $U$ stays constant, being equal to its UV value, while the field coordinate $\rho_k$ evolves with the RG scale.
+
+
+Although the large-$N$ limit does not capture all quantitative aspects of the finite-$N$ theory, it preserves the essential qualitative structure of the renormalization group flow. In particular, it correctly describes symmetry restoration, the emergence of a flat effective potential in the broken phase, and the approach to criticality. In the context of numerical RG calculations, the analytic large-$N$ solution therefore serves as a natural baseline. This observation motivates the strategy adopted in \Sec{sec:PINN}, where we decompose the full finite-$N$ solution into an analytically known large-$N$ contribution and a numerically learned correction. By isolating the dominant large-$N$ behavior, the remnant correction will reduce the stiffness induced by convexity restoration. As we demonstrate below, this decomposition substantially stabilizes the neural network training and enhances accuracy across all temperature regimes.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[htbp!]
+	\centering
+	\includegraphics[width=0.5\textwidth]{figure/simga-pi-propagator.pdf}\includegraphics[width=0.48\textwidth]{figure/V-Vp-flow.pdf}
+	\caption{Left panel: The dimensionless sigma and pion propagators $1/(1+\bar{m}_{\sigma}^2)$ (solid lines) and $1/(1+\bar{m}_{\pi}^2)$ (dashed lines) as functions of the rescaled field $\hat{\rho}=\rho/(\Lambda T_c)$ at different RG scales $k=1000, 100, 20\,\mathrm{MeV}$. Right panel: The RG flow of the effective potential $\partial_t V(\rho)$ (dashed lines) and its field derivative $\partial_t V'(\rho)$ (solid lines) at the same RG scales. Both panels correspond to the $O(4)$ model at $T=100\,\mathrm{MeV}$ in the broken phase.}
+    \label{fig:sigma-pi-propagator-V-Vp-flow}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Fixed point equation}
+\label{sec:fixedpoint_eq}
+For studying universal critical behavior, we also solve the Wilson-Fisher fixed point equation. This is derived from the zero-temperature Euclidean flow equation (see \App{app:derivations}), which can also be derived from \Eq{eq:flow_potential_modelA} by proper rescaling. At the fixed point, the dimensionless potential $u(\bar{\rho})=k^{-d} V_k(\rho)$ becomes scale-invariant, satisfying $\partial_t u = 0$. With $\bar{\rho}=k^{-(d-2)} Z_{\phi, k} \rho$, the fixed point equation reads:
+\begin{align}
+	0 = & -d u+(d-2+\eta) \bar{\rho} u^{\prime} +\mathscr{C}\left[\frac{1}{1+u^{\prime}+2 \bar{\rho} u^{(2)}}+\frac{N-1}{1+u^{\prime}}\right]\,.
+	\label{eq:fixed_point}
+\end{align}
+
+In the large-$N$ limit, this equation can be solved exactly in an implicit form:
+\begin{align}
+	\bar{\rho} = \frac{\mathscr{C}(N-1)}{d-2+\eta}{}_2F_1\left(2,\frac{d-2+\eta}{\eta-2};\frac{d-4+2\eta}{\eta-2};-u_*'(\bar{\rho})\right)\,.
+	\label{eq:fixed_point_largeN}
+\end{align}
+Similar with the finite-temperature flow, our neural network learns the finite-$N$ correction $\Delta u' = u' - u'_{\mathrm{LN}}$ with respect to this large-$N$ baseline, such that one can efficiently avoid the convergence of solutions towards the trivial Gaussian fixed point.
+
+
+
+\section{Neural network representation of the effective potential}
+\label{sec:PINN}
+Before presenting our neural network approach, we first illustrate the numerical challenges inherent in solving the fRG flow equations. \Fig{fig:sigma-pi-propagator-V-Vp-flow} displays field-dependent fRG flow and its components for the $O(4)$ model at $T=100\,\mathrm{MeV}$ in the broken phase. The left panel shows the dimensionless sigma and pion propagators, $1/(1+\bar{m}_{\sigma}^2)$ (solid lines) and $1/(1+\bar{m}_{\pi}^2)$ (dashed lines), as functions of the rescaled field $\hat{\rho}=\rho/(\Lambda T_c)$ at three representative RG scales. At the UV scale ($k=1000\,\mathrm{MeV}$), both propagators are of order unity and vary smoothly with the field. As the RG scale decreases, both propagators develop rapid variations spanning several orders of magnitude within a narrow field range around the potential minimum $\rho_0$. This dramatic field dependence in the small-field region is the primary source of numerical stiffness in the fRG flow equations.
+
+The right panel of \Fig{fig:sigma-pi-propagator-V-Vp-flow} shows the corresponding RG flows $\partial_t V(\rho)$ (dashed lines) and $\partial_t V'(\rho)$ (solid lines). At the UV scale ($k=1000\,\mathrm{MeV}$), both flows are large but exhibit relatively uniform magnitude across the field range. As $k$ decreases, although the overall magnitude of the flows decreases due to the $k^d$ prefactor in the flow equation, the ratio between the maximum and minimum magnitudes within each RG scale increases dramatically, spanning from $\mathcal{O}(10^{-2})$ to $\mathcal{O}(10^{3})$ and from $\mathcal{O}(10^2)$ to $\mathcal{O}(10^{7})$ at $k=20\,\mathrm{MeV}$ for the effective potential and its field derivative, respectively. This enormous dynamic range, concentrated around the potential minimum $\rho_0$ where the convexity restoration occurs, constitutes the primary numerical challenge. Standard ODE/PDE solvers require extremely small step sizes to resolve these rapid variations, leading to prohibitive computational costs.
+
+In the broken phase, the effective potential $V_k(\rho)$ at finite $k$ is non-convex in the region $\rho < \rho_0$, reflecting the underlying spontaneous symmetry breaking. However, the full quantum effective action, obtained as the Legendre transform of the Schwinger functional, must be a convex function of the field. As shown in \Eq{eq:Gamma_k_def}, while $\Gamma_k[\phi]$ itself need not be convex at finite $k$, the combination $\Gamma_k[\phi]+\Delta S_k[\phi]$ remains convex throughout the RG flow. This implies $\Gamma^{(2)}_k[\phi]+R_k\geq 0$, which for the $O(N)$ model with the Litim regulator guarantees positivity of the denominators in the flow equation, i.e., $1+\bar{m}_\sigma^2\geq 0$ and $1+\bar{m}_\pi^2\geq 0$. As $k\to 0$ and $\Delta S_k[\phi] \to 0$, quantum fluctuations flatten the potential in the non-convex region gradually, ultimately restoring the full convexity.
+
+\subsection{Neural network architecture}
+
+The neural network architecture employed in this work, illustrated in \Fig{fig:NN_architecture}, is specifically designed to handle the RG evolution of the field-dependent effective potential and is easy to extend to multi-field dependence in future research. The network predicts the finite-$N$ correction to the field derivative of the effective potential:
+\begin{align}
+\Delta\hat{V}'(t,\hat{\rho}) = \hat{V}'(t,\hat{\rho}) - \hat{V}'_{\mathrm{LN}}(t,\hat{\rho})\,,
+\end{align}
+where $\hat{V}'_{\mathrm{LN}}(t,\hat{\rho})$ denotes the analytically known large-$N$ solution obtained via the method of characteristics described in \Sec{sec:largeN}. The architecture consists of two interconnected sub-networks that process the field and RG scale information separately.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure}[htbp!]
+	\centering
+	\includegraphics[width=0.48\textwidth]{figure/NN_architecture_LargeN.pdf}
+	\caption{Neural network architecture for learning the fRG flow. The network takes as input the RG scale parameter $t$ and the rescaled field variable $\hat{\rho}$, and outputs the finite-$N$ correction to the field derivative of the effective potential, $\Delta\hat{V}'(t,\hat{\rho}) = \hat{V}'(t,\hat{\rho}) - \hat{V}'_{\mathrm{LN}}(t,\hat{\rho})$. The architecture consists of two sub-networks, a field encoding network and an output network with concatenated inputs.}
+	\label{fig:NN_architecture}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The network takes two inputs, the RG scale parameter $t = \ln(k/\Lambda)$ and the rescaled field variable $\hat{\rho} = \rho/(\Lambda^{d-2} T_c)$. The rescaled field $\hat{\rho}$ is firstly processed through a dedicated encoding network consisting of a single fully connected layer with 256 hidden units. This layer employs the Sigmoid Linear Unit (SiLU) activation function, defined as $\text{SiLU}(x) = x \cdot \sigma(x)$ where $\sigma$ is the sigmoid function. The SiLU activation was chosen for its non-monotonic properties that have proven effective in capturing the complex field dependence of the effective potential. For multi-field dependence in future studies, one can use a more sophisticated field encoding network. The 256-dimensional field representation is concatenated with the RG scale parameter $t$, yielding a 257-dimensional feature vector. This combined representation is processed through a deep network consisting of three fully connected layers, each with 256 hidden units and SiLU activations, followed by a final output layer. The final layer employs a Softplus activation function, $\text{Softplus}(x) = \ln(1 + e^x)$, ensuring strictly positive outputs. Crucially, this output is multiplied by the RG scale parameter $t$, implementing the \textit{boundary condition} $\Delta\hat{V}'(t=0,\hat{\rho}) = 0$ exactly. This multiplicative structure ensures that the network output vanishes at the UV scale, since we set the large-$N$ solution to have the same \textit{initial condition} as the finite-$N$ one. The network contains approximately 198,000 trainable parameters, distributed primarily across the hidden layers.
+
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.48\textwidth]{figure/T=10_loss.png}\includegraphics[width=0.48\textwidth]{figure/T=100-200_loss.png}
+	\caption{Training loss convergence for the $O(4)$ model. Left panel: Loss evolution at $T=10\,\mathrm{MeV}$ in the deeply broken phase over $4 \times 10^6$ epochs, displaying characteristic staircase-like multi-stage descent followed by a fluctuating refinement phase with loss around $10^{-9}$. Right panel: Loss evolution for transfer learning at $T=100, 150, 200\,\mathrm{MeV}$ using pre-trained weights from a model at $T=120\,\mathrm{MeV}$ as initialization. The transfer learning dramatically accelerates convergence, with all temperatures reaching loss values around $10^{-9}$ to $10^{-10}$ within $\sim 5\times 10^5$ epochs.}
+	\label{fig:loss_O4}
+\end{figure*}
+
+
+The training of the neural network is guided by a loss function that enforces the fRG flow equation as a physics constraint. In contrast to traditional data-driven approaches, our method does not require pre-computed solutions but instead learns directly from the differential equation structure.
+
+The loss function consists solely of the physics residual:
+\begin{align}
+	L(\theta) = \frac{1}{N_{\text{grid}}} \sum_{i,j} \left| \mathcal{R}_{ij}(\theta) \right|^2\,,
+\end{align}
+where $\mathcal{R}_{ij}(\theta)$ is the residual of the discretized flow equation evaluated at grid point $(i,j)$ corresponding to $(\hat{\rho}_i, t_j)$, and $N_{\text{grid}}$ is the total number of interior grid points.
+
+The residual is computed using a finite difference discretization:
+\begin{align}
+	\mathcal{R}_{ij}(\theta) = \partial_t \hat{V}'_{\theta}(\hat{\rho}_i, t_j) - \mathcal{F}\left[\hat{V}'_{\theta}, \hat{V}''_{\theta},\hat{V}'''_{\theta}, \hat{\rho}_i, t_j\right]\,,
+\end{align}
+where $\mathcal{F}$ represents the right-hand side of the flow equation \eqref{eq:flow_potential_rescale}, and the derivatives are computed using three-point finite difference stencils. Spatial derivatives with respect to $\hat{\rho}$ are computed using central differences with second-order accuracy, while temporal derivatives can employ either central differences or backward Euler discretization for enhanced stability. This approach reduces memory consumption by approximately a factor of 3--4 and is significantly faster compared to automatic differentiation. The finite difference scheme may even lead to better numerical stability than automatic differentiation, as discussed in Ref.~\cite{Chiu_2022}. The training data consists of a structured grid spanning $\hat{\rho} \in [0, \hat{\rho}_{\max}]$ and $t \in [0, t_{\mathrm{UV}}]$. For the results presented here, we employ grids with typical resolutions of $N_{\rho} \times N_t = 201 \times 501$, chosen to adequately resolve the sharp features in the broken phase while maintaining computational tractability. For the deeply broken phase, i.e., $T=10\,\mathrm{MeV}$, we employ grids with resolutions of $N_{\rho} \times N_t = 2001 \times 501$. This grid-based approach is suitable for our two-dimensional input space and ensures uniform coverage of the domain. However, when dealing with high-dimensional input spaces, quasi-random sampling methods may be more suitable. No explicit boundary conditions are imposed in the field direction, allowing the network to naturally determine the asymptotic behavior based on the physics encoded in the flow equation. This approach avoids potential artifacts from artificial boundary constraints that traditional numerical methods impose.
+
+
+To ensure stable training in regions where the flow equation becomes nearly singular, we introduce a small regularization parameter $\epsilon = 10^{-13}$ in the denominators:
+\begin{align}
+	\frac{1}{1 + \bar{m}^2} \to \frac{1}{1 + \bar{m}^2 + \epsilon}\,.
+\end{align}
+This regularization is orders of magnitude smaller than the physical scales and does not affect the accuracy of the solution while preventing numerical instabilities during training.
+
+The implementation leverages modern deep learning frameworks and optimization techniques tailored for scientific computing applications. The network is implemented using \textit{PyTorch} and \textit{PhysicsNEMO} library, which provides specialized layers and utilities for scientific computing with neural networks. All computations are performed in single precision (float32) by default.
+
+\subsection{Numerical results}
+We present numerical results for the $O(4)$ model at various temperatures to demonstrate the effectiveness of our neural network approach for learning fRG flows in the broken phase. The training is performed on a domain with RG time $t \in (t_{\mathrm{IR}}, 0)$ (with $t=\ln(k/\Lambda)$), corresponding to the RG scale range $k \in (k_{\mathrm{IR}}, k_{\mathrm{UV}})$ with $k_{\mathrm{UV}} = 1\,\mathrm{GeV}$. The rescaled field domain is chosen as $\hat{\rho} \in (0, \hat{\rho}_{\mathrm{max}})$.
+
+\subsubsection{Training convergence and optimization strategy}
+
+The optimization of the neural network parameters employs the Adam optimizer with a fixed learning rate of $5 \times 10^{-4}$. We find that the training results are largely insensitive to the choice of learning rate within a reasonable range. The training process leverages \textit{PyTorch Lightning}'s infrastructure for efficient GPU utilization and automatic checkpointing.
+
+\Fig{fig:loss_O4} illustrates the convergence characteristics of our training procedure. The left panel shows the training loss at $T=10\,\mathrm{MeV}$ in the deeply broken phase, where the network is trained for $4 \times 10^6$ epochs. The loss exhibits a characteristic staircase-like multi-stage descent, with rapid drops occurring around epochs $10^1$, $10^2$, and $10^4$ as the network progressively learns different scales of the flow structure. After approximately $10^5$ epochs, the training enters a fluctuating refinement phase where the loss oscillates around $10^{-9}$. This extended training is crucial for accurately capturing the subtle features around the effective potential minimum, which is important for the extraction of physical observables.
+
+
+To improve the training efficiency across different temperature regimes, we employ a transfer learning strategy. We use the network parameters from a trained model at $T=120\,\mathrm{MeV}$ as initialization for training at other temperatures. As shown in the right panel of \Fig{fig:loss_O4}, this strategy dramatically accelerates convergence compared to training from scratch. All three temperatures ($T=100, 150, 200\,\mathrm{MeV}$) achieve loss values around $10^{-9}$ to $10^{-10}$ within $5\times 10^5$ epochs. This demonstrates that the learned representation generalizes well across different temperature regimes, significantly reducing the computational cost for systematic temperature scans.
+
+
+\subsubsection{Effective potential in the broken phase}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.48\textwidth]{figure/T=100_sol_1.pdf}\includegraphics[width=0.48\textwidth]{figure/T=100_sol_2.pdf}
+	\caption{Field derivative of the rescaled effective potential $\hat{V}'_k(\hat{\rho})$ as a function of the rescaled field $\hat{\rho}$ for the $O(4)$ model at $T=100\,\mathrm{MeV}$. Left panel: Evolution at high RG scales ($k = 1000, 800, 500, 100\,\mathrm{MeV}$). Right panel: Evolution at low RG scales ($k = 100, 80, 50, 20\,\mathrm{MeV}$), where convexity restoration flattens $\hat{V}'_k$ in the small-field region. The neural network results (solid gray lines) are compared with the Local Discontinuous Galerkin (LDG) method (dotted lines) and Finite Difference BDF solver (dashed lines), showing excellent agreement across all RG scales.}	
+	\label{fig:T100_solutions}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.48\textwidth]{figure/T=10_sol_1.pdf}\includegraphics[width=0.48\textwidth]{figure/T=10_sol_2.pdf}
+	\caption{Field derivative of the rescaled effective potential $\hat{V}'_k(\hat{\rho})$ as a function of the rescaled field $\hat{\rho}$ for the $O(4)$ model in the deeply broken phase at $T=10\,\mathrm{MeV}$. Left panel: Evolution at high RG scales ($k = 1000, 800, 500, 100\,\mathrm{MeV}$). Right panel: Evolution at low RG scales ($k = 100, 80, 50, 20\,\mathrm{MeV}$), showing the convexity restoration in the small-field region. The neural network results (solid gray lines) are compared with the Local Discontinuous Galerkin method (dotted lines) and Finite Difference BDF solver (dashed lines), demonstrating excellent agreement across all RG scales.}	
+	\label{fig:T10_solutions}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.48\textwidth]{figure/T=100_deltaV.pdf}\includegraphics[width=0.48\textwidth]{figure/T=100_deltaV_3D.png}
+	\caption{Neural network output $\Delta\hat{V}'_k(\hat{\rho}) = \hat{V}'_k(\hat{\rho}) - \hat{V}'_{\mathrm{LN},k}(\hat{\rho})$ representing the finite-$N$ correction learned by the neural network for the $O(4)$ model at $T=100\,\mathrm{MeV}$. Left panel: Field dependence at different RG scales $k = 1000, 800, 500, 200, 20\,\mathrm{MeV}$. At the UV scale ($k = 1000\,\mathrm{MeV}$), the correction vanishes by construction. Right panel: Heat map of $\Delta\hat{V}'(t,\hat{\rho})$ over the full $(t, \hat{\rho})$ domain, where $t = \ln(k/\Lambda)$. The smooth color gradients demonstrate the network's continuous interpolation across the training domain, with the largest finite-$N$ corrections (red regions) concentrated at small $\hat{\rho}$ and intermediate RG scales.}
+	\label{fig:deltaV}
+\end{figure*}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\Fig{fig:T100_solutions} presents the field derivative of the rescaled effective potential $\hat{V}'_k(\hat{\rho})$ for the $O(4)$ model at $T=100\,\mathrm{MeV}$, which lies below the critical temperature $T_c \approx 150\,\mathrm{MeV}$. The left panel displays the evolution at high RG scales ($k = 1000, 800, 500, 100\,\mathrm{MeV}$), where the potential derivative varies smoothly from negative values at small $\hat{\rho}$ to positive values at large $\hat{\rho}$, crossing zero at the potential minimum. At these scales, the system retains memory of the UV initial conditions, and the flow has not yet developed the strong nonlinearities characteristic of the broken phase.
+
+As the RG scale decreases toward the infrared (right panel, $k = 100, 80, 50, 20\,\mathrm{MeV}$), the potential derivative becomes increasingly flat in the small-field region ($\hat{\rho} \lesssim 0.03$), approaching zero. This flattening is a direct manifestation of the convexity restoration mechanism, where quantum fluctuations progressively smooth out the non-convex structure of the effective potential.
+
+We validate our neural network results (solid gray lines) against two established numerical methods, the Local Discontinuous Galerkin (LDG) method (dotted lines) and the Finite Difference solver with backward differentiation formula (BDF) for stiff equations (dashed lines). The agreement between all three methods is excellent across the entire field range and all RG scales, with absolute errors remaining below $4\times 10^{-5}$ even in the challenging small-field region where convexity restoration occurs or near the potential minimum.
+
+The small-field region poses the greatest challenge for the neural network due to the rapid variations and near-singular behavior of the flow equation during convexity restoration. Our network architecture, which separates the analytically known large-$N$ contribution from the learned finite-$N$ correction, proves essential for achieving this accuracy. The large-$N$ solution captures the dominant physics of convexity restoration, allowing the neural network to focus on learning the comparatively smoother finite-$N$ corrections.
+
+Beyond serving as a validation benchmark, \Fig{fig:T100_solutions} also provides an intuitive geometric picture of the RG evolution. In the broken phase, the running minimum $\hat{\rho}_0(k)$ corresponds to the location where $\hat{V}'_k(\hat{\rho})=0$, i.e., where the curves cross zero. As $k$ decreases, the flat region at small $\hat{\rho}$ expands and the zero-crossing point shifts toward smaller fields, reflecting the flow of the order parameter toward its infrared value. This geometric feature underlies the observable flows shown below. \Fig{fig:rho0_flow} tracks the motion of $\hat{\rho}_0(k)$, while \Fig{fig:msig2_flow} probes the local curvature at the running minimum through $\hat{V}''(\hat{\rho}_0)$.
+
+\Fig{fig:T10_solutions} shows the same field derivative $\hat{V}'_k(\hat{\rho})$ in the deeply broken phase at $T=10\,\mathrm{MeV}$, where convexity restoration becomes more pronounced. The UV initial condition is identical to the $T=100\,\mathrm{MeV}$ case. Due to the overall $T$ prefactor in the flow equation \eqref{eq:flow_potential_modelA}, the flow magnitude is reduced at lower temperature, causing the potential minimum to shift less toward smaller fields. However, the convexity restoration mechanism remains active, driving the propagator denominators toward zero in the small-field region and generating large flows there. Consequently, while the RG evolution is nearly frozen for $\hat{\rho}\gtrsim \hat{\rho}_0$, it remains substantial for $\hat{\rho}\lesssim \hat{\rho}_0$.
+
+As the scale is lowered (right panel), the solution develops a small-field plateau where $\hat{V}'_k$ remains nearly constant for $0\le \hat{\rho}\lesssim \hat{\rho}_0(k)$, with a sharp crossover around $\hat{\rho}_0(k)$ connecting to the rising branch at larger fields. As $k\to 0$, this plateau region expands and $\hat{V}'_k$ approaches zero, ultimately restoring full convexity. Compared with \Fig{fig:T100_solutions}, the crossover occurs at larger $\hat{\rho}$ and becomes significantly sharper, illustrating the increased stiffness of the flow deep in the broken phase. The excellent agreement between the neural network (solid gray) and the LDG/BDF benchmarks demonstrates that the network accurately resolves both the near-flat region and the steep gradients around $\hat{\rho}_0(k)$ without introducing spurious oscillations.
+
+To gain deeper insight into the network's learned representation, we examine the neural network output $\Delta\hat{V}'_k(\hat{\rho})$ directly in \Fig{fig:deltaV}. This quantity represents the finite-$N$ correction to the analytically known large-$N$ solution.
+
+The left panel of \Fig{fig:deltaV} displays the evolution of $\Delta\hat{V}'_k(\hat{\rho})$ as a function of the rescaled field $\hat{\rho}$ for several RG scales. At the UV scale ($k = 1000\,\mathrm{MeV}$, red curve), the correction vanishes identically, as enforced by the network architecture through the multiplicative factor of $t$ in the output layer.
+
+At lower RG scales ($k = 200\,\mathrm{MeV}$), the correction develops a non-monotonic field dependence with a pronounced peak around $\hat{\rho} \approx 0.04$, corresponding to the region near the effective potential minimum. In the deep infrared ($k = 20\,\mathrm{MeV}$), the correction becomes highly localized near the potential minimum, capturing the subtle finite-$N$ effects that distinguish the physical $O(4)$ theory from its large-$N$ approximation.
+
+The right panel provides a complementary view through a heat map of $\Delta\hat{V}'(t,\hat{\rho})$ over the full training domain, where $t = \ln(k/\Lambda)$ ranges from $0$ (UV) to $-4$ (IR). The smooth color gradients demonstrate the network's ability to interpolate continuously across the $(t, \hat{\rho})$ space without artificial discontinuities or oscillations. The largest finite-$N$ corrections (red regions) are concentrated at small $\hat{\rho}$ and intermediate RG scales ($t \sim -0.5$ to $-1.5$), corresponding to momentum scales $k \sim 200$--$600\,\mathrm{MeV}$ where the sigma-mode fluctuations contribute most significantly to the RG flow.
+
+\subsubsection{Physical observables}
+
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.48\textwidth]{figure/rho_0_lowT.pdf}\includegraphics[width=0.48\textwidth]{figure/rho_0_highT.pdf}
+	\caption{RG evolution of the order parameter $\hat{\rho}_0$ (position of the effective potential minimum defined by $\hat{V}'(\hat{\rho}_0) = 0$) as a function of RG time $t = \ln(k/\Lambda)$ for the $O(4)$ model. Left panel: Broken phase at $T = 10\,\mathrm{MeV}$ (red) and $T = 100\,\mathrm{MeV}$ (blue), where $\hat{\rho}_0$ flows to a finite infrared value, indicating spontaneous symmetry breaking. Right panel: Critical and symmetric phase at $T = 150\,\mathrm{MeV}$ (orange) and $T = 200\,\mathrm{MeV}$ (green), where $\hat{\rho}_0$ flows to zero, signaling restoration of $O(4)$ symmetry. Neural network results (solid lines) are compared with Finite Difference BDF (FD, dashed) and Local Discontinuous Galerkin (LDG, dot-dashed) methods.}
+	\label{fig:rho0_flow}
+\end{figure*}
+
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.48\textwidth]{figure/msig2_lowT.pdf}\includegraphics[width=0.48\textwidth]{figure/msig2_highT.pdf}
+	\caption{RG evolution of the dimensionless sigma mass squared $\hat{m}_\sigma^2 = \hat{V}'(\hat{\rho}_0) + 2\hat{\rho}_0\hat{V}''(\hat{\rho}_0)$ evaluated at the potential minimum as a function of RG time $t = \ln(k/\Lambda)$ for the $O(4)$ model. Left panel: Broken phase at $T = 10\,\mathrm{MeV}$ (red) and $T = 100\,\mathrm{MeV}$ (blue). Right panel: Critical and symmetric phase at $T = 150\,\mathrm{MeV}$ (orange) and $T = 200\,\mathrm{MeV}$ (green). Neural network results (solid lines) show excellent agreement with Finite Difference BDF (FD, dashed) and Local Discontinuous Galerkin (LDG, dot-dashed) methods.}
+	\label{fig:msig2_flow}
+\end{figure*}
+
+Beyond the full field-dependent effective potential, we also extract physical observables that characterize the thermodynamic state of the system. We present the RG evolution of the order parameter $\hat{\rho}_0$ (the location of the potential minimum) and the sigma mass squared $\hat{m}_\sigma^2 = \hat{V}'(\hat{\rho}_0) + 2\hat{\rho}_0\hat{V}''(\hat{\rho}_0)$ evaluated at this minimum in \Fig{fig:rho0_flow} and \Fig{fig:msig2_flow}.
+
+The order parameter $\hat{\rho}_0$, shown in \Fig{fig:rho0_flow}, indicates whether there is a spontaneous symmetry breaking. In the broken phase (left panel, $T = 10\,\mathrm{MeV}$ and $T = 100\,\mathrm{MeV}$), $\hat{\rho}_0$ decreases from its UV initial value ($\hat{\rho}_0 \approx 0.071$) but stays finite in the infrared. The evolution is slower at lower temperature, reflecting the overall $T$ prefactor in the flow equation \Eq{eq:flow_potential_modelA} (equivalently \Eq{eq:flow_potential_rescale} in our rescaled variables). In the critical and symmetric regime (right panel, $T = 150\,\mathrm{MeV}$ and $T = 200\,\mathrm{MeV}$), $\hat{\rho}_0$ is driven to zero, indicating restoration of the $O(4)$ symmetry. This trend is also visible directly in the field profiles such as \Fig{fig:T100_solutions} and \Fig{fig:T10_solutions}; as $k$ decreases, the flat region in $\hat{V}'_k(\hat{\rho})$ expands and pushes the effective minimum toward smaller fields.
+
+The sigma mass squared $\hat{m}_\sigma^2$, displayed in \Fig{fig:msig2_flow}, is extracted from the learned potential via $\hat{m}_\sigma^2 = \hat{V}'(\hat{\rho}_0) + 2\hat{\rho}_0\hat{V}''(\hat{\rho}_0)$. Since this quantity depends on a second field derivative evaluated at a running, solution-dependent location $\hat{\rho}_0(k)$, it provides a stringent test of the learned solution beyond the field profiles themselves. In the broken phase (left panel), $\hat{m}_\sigma^2$ decreases monotonically as the flow approaches convexity. The emergence of a plateau $\hat{V}'_k(\hat{\rho})\simeq \mathrm{const}$ for $0\le \hat{\rho}\le \hat{\rho}_0$ implies $\hat{V}''(\hat{\rho}_0)\to 0$ and thus $\hat{m}_\sigma^2 = 2\hat{\rho}_0\hat{V}''(\hat{\rho}_0)\to 0$ in the deep infrared $t \to - \infty$. Note that $\hat{m}_\sigma^2$ is finite at a finite value of $t$ in the broken phase, while at the critical temperature it is vanishing when $t$ is smaller than some finite value, as shown by the orange line in the right panel of \Fig{fig:msig2_flow}. Above $T_c$ ($T = 200\,\mathrm{MeV}$, green line in the right panel), $\hat{m}_\sigma^2$ first decreases rapidly to zero at the scale where $\hat{\rho}_0$ vanishes in \Fig{fig:rho0_flow}, reflecting the disappearance of the broken minimum. It then increases again as the system enters the symmetric phase, where $m_\sigma^2 = V'(0) = m_\pi^2$ and the sigma and pion modes become degenerate. The excellent agreement between the neural network and the conventional solvers across all temperatures demonstrates that the neural network captures not only $\hat{V}'$ but also its curvature reliably, even in the stiff, small-field regime where convexity restoration occurs. We note that at $T=10\,\mathrm{MeV}$, a small deviation between the neural network and the LDG method appears in the deep infrared. This discrepancy arises from the extreme numerical stiffness in the deeply broken phase, where the convexity restoration generates very steep gradients around the potential minimum. In this regime, different numerical methods are sensitive to their respective discretization schemes, and the accumulated numerical errors become most pronounced at the lowest RG scales. Nevertheless, the overall agreement remains quantitatively satisfactory.
+
+
+\begin{figure*}[t]
+	\centering
+	\hspace{-1em}\includegraphics[width=0.465\textwidth]{figure/fixedpoint_N=1-4_all.pdf}\includegraphics[width=0.48\textwidth]{figure/fixedpoint_N=1-4_small.pdf}
+	\caption{Fixed point solutions for $O(N)$ models with $N=1,2,3,4$ near the critical point. Left panel: Full field range showing the global structure of the fixed point potential derivatives. Right panel: Detailed view of the small field region.}	
+	\label{fig:fixedpoint_analysis}
+\end{figure*}
+
+\subsubsection{Wilson-Fisher fixed point}
+
+As a further application of the neural network methodology, we solve for the Wilson-Fisher fixed point of the $O(N)$ model in $d=3$ dimensions within the LPA ($\eta=0$). The Wilson-Fisher fixed point governs the universal critical behavior of second-order phase transitions in the $O(N)$ universality class, and accurate determination of the fixed point potential is essential for computing critical exponents~\cite{Tan:2024fuq}. At the fixed point, scale invariance requires $\partial_t u(\bar{\rho})=0$, reducing the flow equation to an ordinary differential equation for the dimensionless potential derivative $u'(\bar{\rho})$. Although this problem is lower-dimensional than the full RG flow, it poses its own challenges. The fixed point ODE contains rational nonlinearities with denominators that could be zero, and numerical integration starting from small field typically encounters a singularity at finite field~\cite{Tan:2022ksv}. Conventional shooting methods require careful fine-tuning of parameters to isolate the Wilson-Fisher solution from the Gaussian fixed point or spurious multicritical solutions.
+
+We employ the same strategy used for the finite-temperature flows. The network learns only the finite-$N$ correction $\Delta u'(\bar{\rho}) = u'(\bar{\rho}) - u'_{\mathrm{LN}}(\bar{\rho})$, where the large-$N$ fixed point solution $u'_{\mathrm{LN}}(\bar{\rho})$ is known analytically via the implicit hypergeometric expression given in Eq.~\eqref{eq:fixed_point_largeN}. This decomposition biases the network toward the physically relevant Wilson-Fisher branch and avoids collapsing onto the Gaussian fixed point. The network architecture is a simple four-layer multilayer perceptron (MLP) with 256 hidden units per layer and SiLU activations, trained by minimizing the ODE residual of the fixed point equation using finite-difference derivatives.
+
+
+\Fig{fig:fixedpoint_analysis} displays the resulting fixed point potential derivative $u'_*(\bar{\rho})$ for $N=1$ (Ising), $N=2$ (XY), $N=3$ (Heisenberg), and $N=4$ (relevant for chiral symmetry restoration in two-flavor QCD). The left panel shows the global field dependence. All curves start negative at small $\bar{\rho}$ and grow monotonically, with smaller $N$ corresponding to steeper slopes. In the large-$N$ limit, the $(N-1)$ pion-mode contributions dominate the flow equation, resulting in a flatter fixed point potential profile. As $N$ decreases, the relative weight of the sigma-mode contribution increases, leading to steeper slopes in $u'_*(\bar{\rho})$.
+
+The right panel provides a zoom-in view of the small-field region $\bar{\rho}\lesssim 0.09$, which is most sensitive to the critical properties of the phase transition. The correlation-length exponent $\nu$ can be extracted from the relevant eigenvalue of the linearized flow around the fixed point solution $u'_*(\bar{\rho})$~\cite{Tan:2022ksv}, while the anomalous dimension $\eta$ (which vanishes identically in the LPA) can be obtained by extending to higher-order truncations such as LPA$'$. The neural network results (solid gray lines) are validated against a shooting method employing the RadauIIA5 implicit Runge-Kutta integrator (dashed lines), which is well-suited for stiff boundary-value problems. See Ref.~\cite{Tan:2022ksv} for details. The agreement is excellent across all values of $N$ and the entire field range.
+
+These results demonstrate that the neural network framework extends naturally from time-dependent RG flows to stationary fixed point equations, providing a unified machine-learning approach to fRG calculations. The ability to reliably isolate the Wilson-Fisher fixed point without manual tuning of shooting parameters or boundary conditions highlights the robustness of the neural network architecture and its potential for systematic studies of critical phenomena across different universality classes.
+
+\section{Conclusion and Outlook}
+\label{sec:conclusion}
+
+In this work, we have developed a neural network framework for representing the effective potential in functional renormalization group calculations and demonstrated its performance for the $O(N)$ scalar field theory within the local potential approximation. By encoding the fRG flow equations directly into the loss function, the network parameters are determined so as to yield continuous solutions for the scale- and field-dependent effective potential without relying on supervised training data.
+
+A key innovation of our approach is the decomposition of the solution into an analytically known large-$N$ contribution and a learned finite-$N$ correction. This hybrid strategy captures the dominant nonperturbative structure analytically and allows the neural network to focus on the smoother residual correction, thereby overcoming the numerical stiffness associated with convexity restoration in the broken phase. The resulting solutions agree quantitatively with established finite-difference and discontinuous Galerkin methods across all temperature regimes. We further demonstrated that the same framework applies naturally to fixed-point problems by computing the Wilson–Fisher fixed point potential in three dimensions for several values of $N$. Learning the finite-$N$ correction relative to the large-$N$ solution guides the optimization toward the physically relevant interacting fixed point and avoids convergence to the Gaussian solution, without the need for fine-tuned boundary conditions or shooting procedures.
+
+Compared with conventional grid-based numerical methods, the neural network representation offers several distinct advantages. First, it provides a continuous and differentiable parameterization of the effective potential across the entire $(t,\hat{\rho})$ domain, free from the discretization artifacts inherent in finite-difference or finite-element approaches. Second, no explicit boundary conditions need to be imposed at the boundary of a truncated computational domain in the field direction. The behavior of the effective potential at large field is not strongly constrained on physical grounds, the neural network formulation naturally accommodates this freedom by not requiring explicit boundary conditions in the field direction. Third, once trained at one temperature, the network parameters serve as an effective initialization for neighboring temperatures via transfer learning, enabling efficient systematic scans across the phase diagram. Finally, when the effective potential depends on multiple field variables, the resulting high-dimensional stiff problem renders conventional grid-based methods nearly impractical, as both memory consumption and computational cost grow combinatorially with the number of field directions. The neural network representation does not suffer from this curse of dimensionality since additional input variables can be incorporated without a fundamental change in architecture or a prohibitive increase in cost, making it a particularly promising tool for fRG applications beyond the local potential approximation.
+
+
+The present results suggest several directions for future work. On the methodological side, further optimization of the network architecture and training strategy is expected to improve both efficiency and robustness. This includes more expressive input representations, such as Fourier feature embeddings~\cite{tancik2020ffn} or logarithmic scale encodings for the RG time that better capture the hierarchical structure of the flow, as well as alternative architectures beyond standard multilayer perceptrons. Improved adaptive sampling of collocation points in regions with strong gradients and the incorporation of advanced optimization techniques may further enhance performance in stiff regimes.
+
+
+Beyond the present approach, other physics-driven deep learning methods offer promising alternatives for solving fRG equations. Operator-learning methods such as DeepONet~\cite{Lu_2021} and Fourier neural operators~\cite{li2021fourierneuraloperatorparametric} are designed to learn mappings between function spaces and could potentially approximate the RG flow operator that maps ultraviolet initial conditions to infrared effective actions, enabling efficient evaluation for varying microscopic parameters. In addition, the recently proposed physics-informed kernels (PIKs)~\cite{Ihssen:2024ihp,Ihssen:2025ybn,Ihssen:2025hyl,Ihssen:2026njd} approach provides a complementary perspective by encoding structural properties of renormalization group flows into reduced flow representations. Exploring possible connections between such physics-guided formulations and the operator-learning or neural-network-based approaches considered here may be an interesting direction for future studies.
+
+From the physics perspective, the scalability of the neural network representation makes it possible to tackle fRG problems that have remained prohibitively expensive for conventional numerical methods. A particularly important direction is the extension to multi-field effective potentials, such as those arising in $2+1$ flavor QCD or in scalar theories with more complex symmetry-breaking patterns, where the effective potential depends on several independent field invariants. Equally promising is the application to the vertex expansion, where the full momentum dependence of higher-order correlation functions introduces a high-dimensional input space that has so far severely limited systematic nonperturbative studies.
+
+Overall, this study demonstrates that neural network representations of the effective potential can serve as a robust, flexible, and scalable numerical tool for functional renormalization group calculations, complementing established methods and opening new possibilities for addressing nonperturbative problems in quantum field theory.
+
+\begin{acknowledgments}
+We thank Chuang Huang, Friederike Ihssen, Renzo Kapust and Jan M. Pawlowski, Franz R. Sattler for insightful discussions.
+% Institutions
+We thank the DEEP-IN working group at RIKEN-iTHEMS for support in the preparation of this paper.
+% Funds
+WF is supported by the National Natural Science Foundation of China under Contract No.\ 12447102.
+LW is supported by the RIKEN-TRIP initiative (RIKEN-Quantum), JSPS KAKENHI Grant No. 25H01560, and JST-BOOST Grant No. JPMJBY24H9.
+
+\end{acknowledgments}
+
+\appendix
+\section{Derivation details for $O(N)$ flow}
+\label{app:derivations}
+
+This appendix provides detailed derivations of the flow equations and analytical solutions presented in the main text.
+
+\subsection{Zero-temperature flow equation}
+\label{app:zeroT}
+
+Applying the Wetterich equation \eqref{eq:wetterich} to the $O(N)$ model in the LPA at zero temperature in Euclidean spacetime yields:
+\begin{align}
+\partial_t V_k(\rho)=\mathscr{C} k^d\left[\frac{1}{1+\bar{m}_{\sigma, k}^2}+\frac{N-1}{1+\bar{m}_{\pi, k}^2}\right]\,.
+\label{eq:flow_potential_zeroT}
+\end{align}
+This equation serves as the basis for the fixed point analysis in \Sec{sec:fixedpoint_eq}. The dimensionless form, obtained by introducing $\bar{\rho}=k^{-(d-2)} Z_{\phi, k} \rho$ and $u(\bar{\rho})=k^{-d} V_k(\rho)$, reads:
+\begin{align}
+	\partial_t u(\bar{\rho})= & -d u(\bar{\rho})+(d-2+\eta) \bar{\rho} u^{\prime}(\bar{\rho}) \nonumber\\
+	& +\mathscr{C}\left[\frac{1}{1+u^{\prime}+2 \bar{\rho} u^{(2)}}+\frac{N-1}{1+u^{\prime}}\right]\,.
+	\label{eq:flow_potential_dimensionless}
+\end{align}
+Setting $\partial_t u = 0$ yields the fixed point equation \eqref{eq:fixed_point}.
+
+\subsection{Finite temperature flow via Schwinger-Keldysh formalism}
+\label{app:finite_T}
+
+For a complete treatment of finite temperature dynamics, we employ the real-time functional renormalization group formulated on the Schwinger-Keldysh contour. The Schwinger-Keldysh formalism introduces two field components: the classical field $\phi_c$ (forward time branch) and the quantum field $\phi_q$ (difference between forward and backward branches). The scale-dependent effective action for the microscopic $O(N)$ theory~\cite{Tan:2021zid} becomes:
+\begin{align}
+&\Gamma_k\left[\phi_c, \phi_q\right]=\int \mathrm{d}^{d+1}x\left[Z_{\phi, k}\phi_{a,q}\left(\partial^2_t-\partial^2_i \right)\phi_{a,c}\right.\nonumber\\[2ex]
+&\left.+V'_k(\rho_c)\phi_{a,q}\phi_{a,c}- q_0\epsilon\coth\left(\frac{q_0}{2T}\right)\phi_{a,q}^2 +\epsilon\phi_{a,q}\partial_t\phi_{a,c}\right]\,,
+\end{align}
+where $q_0$ denotes the frequency in Fourier space, $\epsilon\to 0^+$ encodes the causal $i\epsilon$ prescription, and the Keldysh noise kernel $\propto\coth(q_0/2T)$ encodes the thermal fluctuation-dissipation relation.
+
+The corresponding flow equation incorporates thermal effects through the bosonic distribution function:
+\begin{align}
+\partial_t V_k(\rho)=&\mathscr{C} k^{d+1}\left[\frac{1}{2\sqrt{1+\bar{m}_{\sigma, k}^2}}\coth\left(\frac{k\sqrt{1+\bar{m}_{\sigma, k}^2}}{2T}\right)\right.\nonumber\\[2ex]
+&\left.+\frac{N-1}{2\sqrt{1+\bar{m}_{\pi, k}^2}}\coth\left(\frac{k\sqrt{1+\bar{m}_{\pi, k}^2}}{2T}\right)\right]\,.
+\label{eq:flow_potential_microscopic}
+\end{align}
+
+For systems with purely dissipative dynamics (Model A in the Hohenberg-Halperin classification), the effective action~\cite{Chen:2023tqc} simplifies to:
+\begin{align}
+	\Gamma_k\left[\phi_c, \phi_q\right]=\int dx^{d+1}&\Big[\phi_{a,q}\partial_t\phi_{a,c}-Z_{\phi, k}\phi_{a,q}\partial^2_i\phi_{a,c}\nonumber\\[2ex]
+	&+V'_k(\rho_c)\phi_{a,q}\phi_{a,c}- 2T\phi_{a,q}^2 \Big]\,,
+\end{align}
+yielding the simplified flow equation \eqref{eq:flow_potential_modelA}. In the high temperature limit, $\coth(k\sqrt{1+\bar{m}^2}/2T)\to 2T/(k\sqrt{1+\bar{m}^2})$, and the microscopic flow \eqref{eq:flow_potential_microscopic} reduces to the Model A form.
+
+\subsection{Method of characteristics for large-N solution}
+\label{app:characteristics}
+
+The large-$N$ flow equation \eqref{eq:flow_potential_modelA_largeN} can be solved exactly using the method of characteristics. Taking the field derivative yields:
+\begin{align}
+	\partial_k V'_k(\rho)=-\mathscr{C}T k^{d+1} \frac{N-1}{(k^2+V'_k(\rho))^2}V''_k(\rho)\,.
+\end{align}
+Defining $U_k(\rho)=V'_k(\rho)$ and rescaling $\rho\to \rho/(\mathscr{C}T(N-1))$, we obtain:
+\begin{align}
+	\partial_k U_k(\rho)=-k^{d+1} \frac{1}{(k^2+U_k(\rho))^2}U'_k(\rho)\,.
+\end{align}
+
+This quasi-linear first-order PDE has characteristic equations:
+\begin{align}
+	\frac{dk}{ds} &= 1, \quad
+	\frac{d\rho}{ds} = \frac{k^{d+1}}{(k^2+U)^2}\equiv g(U,k), \quad
+	\frac{dU}{ds} = 0\,.
+\end{align}
+The physical interpretation is clear: along each characteristic curve, $U$ remains constant while $\rho$ evolves according to $d\rho_k/dk = g(U,k)$.
+
+Integrating from the UV scale $\Lambda$ to the running scale $k$:
+\begin{align}
+	\rho_k = \rho_{\Lambda} + \int_{\Lambda}^{k} g(U,k') dk'\,.
+\end{align}
+The integral can be evaluated analytically, yielding the exact solution \eqref{eq:largeN_solution}.
+
+At the minimum where $U = V'_k(\rho) = 0$, the solution simplifies to:
+\begin{align}
+	\rho_{\text{min}}=U_\Lambda^{-1}(0)+\frac{k^{d-2}-\Lambda^{d-2}}{d-2}\,,
+\end{align}
+describing the RG evolution of the expectation value. For $d=3$ with linear initial conditions $U_\Lambda=\lambda(\rho-\rho_0)$: $\rho_{\text{min}}=\rho_0+k-\Lambda$.
+
+\subsection{Fixed point ODE}
+\label{app:fixedpoint_ode}
+
+The fixed point equation \eqref{eq:fixed_point}, obtained by setting $\partial_t u = 0$ in \Eq{eq:flow_potential_dimensionless}, is a differential algebraic equation of index 1. Differentiating with respect to $\bar{\rho}$ yields a second-order ODE for $u'(\bar{\rho})$:
+\begin{align}
+	&\mathscr{C}\Bigg[-\frac{3 u^{(2)}+2 \bar{\rho} u^{(3)}}{\left(1+u^{\prime}+2 \bar{\rho} u^{(2)}\right)^2}-(N-1) \frac{u^{(2)}}{\left(1+u^{\prime}\right)^2}\Bigg]\nonumber\\[2ex]
+	&+(-2+\eta)u'+(d-2+\eta)\bar{\rho}u^{(2)}=0\,.
+\end{align}
+This ODE, with appropriate boundary conditions, determines the fixed point potential and enables extraction of critical exponents characterizing the universality class.
+% \bibliographystyle{apsrev4-2}
+\bibliography{ref-lib}
+
+%\end{widetext}
+
+	
+\end{document}
+%
+% ****** End of file apssamp.tex ******

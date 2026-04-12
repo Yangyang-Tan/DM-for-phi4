@@ -1,0 +1,214 @@
+\documentclass[letterpaper,11pt]{article}
+% \documentclass[danish,a4paper,11pt]{scrartcl}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{multicol}
+\usepackage{color}
+\usepackage{xcolor}
+\usepackage{comment}
+\definecolor{blue}{rgb}{0,0,1} 
+\input{glyphtounicode}
+\usepackage{amsfonts}
+\usepackage{indentfirst}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=cyan,
+	filecolor=blue,      
+	urlcolor=blue,
+	citecolor=blue,
+}
+\usepackage[backend=bibtex,style=nature,eprint=false]{biblatex}
+\AtEveryCitekey{\clearfield{extradate}}
+\AtEveryBibitem{\clearfield{extradate}}
+\AtEveryBibitem{\clearfield{month}}
+\AtEveryCitekey{\clearfield{month}}
+\AtEveryBibitem{\clearfield{year}}
+\AtEveryCitekey{\clearfield{year}}
+% \DeclareFieldFormat{linked}{%
+%   }
+
+\addbibresource{ref-lib.bib}
+\ExecuteBibliographyOptions{doi=false}
+
+\newbibmacro{string+doiurlisbn}[1]{%
+  \iffieldundef{doi}{%
+    \iffieldundef{url}{%
+    \href{http://arxiv.org/abs/\thefield{eprint}}{#1}%
+    }{%
+      \href{\thefield{url}}{#1}%
+    }%
+  }{%
+    \href{http://dx.doi.org/\thefield{doi}}{#1}%
+  }%
+}
+
+\DeclareFieldFormat{title}{\usebibmacro{string+doiurlisbn}{\mkbibemph{#1}}}
+\DeclareFieldFormat[article,incollection]{title}%
+    {\usebibmacro{string+doiurlisbn}{\mkbibquote{#1}}}
+
+
+% \DeclareFieldFormat{title}{\usebibmacro{string+doi}{\mkbibemph{#1}}}
+% \DeclareFieldFormat[article]{title}{\usebibmacro{string+doi}{\mkbibquote{#1}}}
+
+\usepackage{baskervillef}
+% \usepackage[T1]{fontenc}
+% \usepackage{lmodern} \normalfont %to load T1lmr.fd 
+% \usepackage{bold-extra}
+% \usepackage[OT1]{fontenc}
+% \renewcommand*\familydefault{\sfdefault}
+
+\usepackage{babel}
+% \usepackage{slantsc}
+\usepackage{array}
+\usepackage{amsmath}
+% \setkomafont{subsection}{\usefont{T1}{fvm}{m}{n}}
+% \setkomafont{section}{\usefont{T1}{fvs}{b}{n}\Large}
+\setcounter{secnumdepth}{1}
+% \pagestyle{empty}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+% \usepackage{newtxtext,newtxmath}
+% \renewcommand{\familydefault}{\rmdefault}
+
+\usepackage{ragged2e}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead{}
+\fancyfoot{}
+\cfoot{\thepage}
+\setlength{\footskip}{10pt}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\headsep}{0.7in}
+\addtolength{\parindent}{0.0in}
+\addtolength{\oddsidemargin}{-0.25in}
+\addtolength{\evensidemargin}{-0.25in}
+\addtolength{\textwidth}{0.5in}
+\addtolength{\topmargin}{-1.0in}
+\addtolength{\textheight}{0.4in}
+% \renewcommand{\familydefault}{}%改字体
+% \renewcommand{\familydefault}{\rmdefault}
+
+ % \usepackage{times}
+\pagenumbering{arabic}
+\urlstyle{same}
+
+%\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+%\titleformat{\section}{
+%  \it\vspace{3pt}
+%}{}{0em}{}[\color{black}\titlerule\vspace{-5pt}]
+
+\pdfgentounicode=1
+
+\newcommand{\resumeItem}[1]{
+  \item{
+    {#1 \vspace{-4pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small #3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-10pt}
+}
+
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-3pt}}
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-2pt}}
+\setlength{\parindent}{2em}
+\justifying
+
+%%%%%
+\usepackage[normalem]{ulem}
+\newcommand{\blue}[1]{{\color{blue} #1}}
+\newcommand{\red}[1]{{\color{red} #1}}
+\newcommand{\rout}[1]{\red{\sout{#1}}}
+%%%%%%
+
+\begin{document}
+\begin{center}
+    {\LARGE Research Proposal} \\ \vspace{0.in}
+\end{center}
+
+% Real-Time Critical Phenomena and Dynamic Universality Classes: From Quantum Chromodynamics to Emergent Hydrodynamics
+
+
+The study of real-time critical phenomena and dynamic universality classes is central to understanding phase transitions in a wide range of systems—from the quark–gluon plasma (QGP) in high-energy nuclear collisions to superfluids in condensed matter and even complex biological systems. Although QGP, condensed matter systems, and biological systems differ significantly in their microscopic constituents (quarks/gluons versus atoms/electrons/phonons versus proteins/biological entities), they often exhibit universal dynamic behavior near their critical points. This universality emerges because fluctuations occur over all length and time scales, with long-wavelength fluctuations dominating the dynamics. As a result, the details of the underlying microscopic theory become secondary, and systems as disparate as quark–gluon plasmas and superfluids can be classified within the same universality classes. In the critical regime, these systems share profound universal features—including power-law scaling, self-similarity, divergent susceptibilities, and critical slowing down. Consequently, insights from one system can inform our understanding of others, providing a robust framework for investigating complex real‐time dynamics across diverse scientific disciplines.
+
+
+Uncovering the QCD phase diagram and locating the critical end point (CEP), a landmark feature where the first-order phase transition terminates in a second-order critical point, holds the key to understanding how nuclear matter transitions from a confined hadronic phase to a deconfined quark–gluon plasma (QGP) under extreme conditions—a regime directly relevant to the early universe, neutron star mergers, and relativistic heavy-ion collisions, remains most urgent open questions in nuclear physics: \textit{Does the CEP exist, and if so, where does it lie in the QCD phase diagram?} Over the past two decades, experiments at RHIC and LHC have probed complementary regions of the phase diagram. Experimental data from STAR's Beam Energy Scan (BES) program at RHIC indicate a possible non-monotonic behavior in the higher-order cumulants of proton and net-proton fluctuations, suggesting the potential presence of the CEP~\cite{STAR:2020tga,STAR:2021fge}. The upcoming results from the BES program, alongside the construction of the FAIR~\cite{Almaalol:2022xwv} facility in Germany, will continue the task and further extend to explore the high $\mu_B$ region. Yet, without parallel theoretical breakthroughs to appropriately interpret these experimental results, the CEP and the fundamental structure of the QCD phase diagram may remain elusive.
+
+Theoretical investigations of the QCD phase diagram and predictions concerning the CEP are particularly challenging due to the intrinsically non-perturbative nature of QCD at low energies. Lattice QCD is reliably at vanishing chemical potential, indicating that the chiral phase transition is a crossover at finite temperature and vanishing chemical potential and becomes a second-order phase transition in the massless quark limit~\cite{HotQCD:2019xnw}. However, at finite chemical potential, the notorious sign problem renders lattice QCD nearly intractable; thermodynamic quantities can only be accessed via extrapolation~\cite{Bollweg:2022rps}, and the method becomes unreliable for $\mu_B/T>3$, where the CEP is expected. Functional methods such as the functional renormalization group (fRG)~\cite{Dupuis:2020fhh} and Dyson–Schwinger equations (DSE)~\cite{Fischer:2018sdj} provide indispensable non-perturbative tools for studying the QCD phase diagram at the non-vanishing chemical potential. However, these approaches must contend with the dynamical evolution of QCD matter in relativistic collisions, where far-from-equilibrium initial states and critical fluctuations near the CEP demand a real-time description. Hydrodynamic simulations, while successful in describing bulk QGP evolution, rely on input Equation of State (EoS) and transport coefficients and also lack the ability to capture the critical scaling behavior near the CEP. Classical-statistical simulations~\cite{Schlichting:2019tbr,Schweitzer:2020noq,Schweitzer:2021iqk} of dynamical models can incorporate critical fluctuations but are limited to specific models and lack a direct connection to QCD. A comprehensive understanding of the CEP thus requires a paradigm shift: a framework capable of unifying real-time critical dynamics, non-equilibrium evolution, and first-principle QCD calculation.
+
+
+A particularly promising approach involves combining the Schwinger–Keldysh field theory within the fRG framework. The fRG provides a systematic method for integrating out quantum, thermal, and density fluctuations across scales, thereby capturing the critical behavior and scaling properties of the system. It has been successfully applied to directly study the non-perturbative regime of QCD in Euclidean space from first principles~\cite{Cyrol:2017ewj,Fu:2025hcm}. Simultaneously, the Schwinger–Keldysh formalism facilitates the study of real-time dynamics and nonequilibrium processes. This combined framework has already been employed to investigate non-thermal fixed points ~\cite{Berges:2008sr}, quantum mechanical quartic anharmonic oscillator~\cite{Huelsmann:2020xcy}, and dynamical models within the Hohenberg–Halperin classification~\cite{Hohenberg:1977ym} (via the Martin–Siggia–Rose–Janssen–de Dominicis transformation of Langevin-type equations)~\cite{Roth:2023wbp,Roth:2024hcu,Roth:2024rbi}.  The real-time fRG approach is poised to offer a robust framework for studying the real-time dynamics of QCD matter, including phenomena such as critical slowing down, dynamic scaling, and the intermediate transport properties of the system. Our primary goal is to develop this real-time fRG method to bridge microscopic quantum theories with emergent hydrodynamic behavior, thereby enabling first-principle calculations of hydrodynamic modes and transport coefficients.
+
+This proposal is devoted into two parts, the first part is to investigate the real-time dynamics of the microscopic and mesoscopic systems separately, we will study critical behavior for the microscopic scalar field theory and the relevant mesoscopic dynamical models. The second part aims to bridge microscopic theory to macroscopic hydrodynamics, which will be pursued as a long-term goal extending beyond the two-year duration of the Humboldt Fellowship. We will explore the connection between the microscopic $O(N)$ theory and macroscopic hydrodynamics, with the ultimate goal of extending this framework to QCD matter in future research.
+
+
+\section{Real-time dynamics for the microscopic and mesoscopic systems}
+Real-time dynamics in strongly correlated systems near phase transitions have long been at the forefront of multiple subfields of physics—including high-energy physics, relativistic heavy-ion collisions, condensed matter physics, hydrodynamics, and gauge/gravity duality. Progress in one area can have significant implications for others. This section of the proposal seeks not only to provide a comprehensive understanding of real-time dynamics at both microscopic and mesoscopic scales, thereby laying the groundwork for bridging the gap between microscopic quantum theories and emergent hydrodynamic behavior but also to enhance our overall understanding of critical phenomena across diverse domains of physics.
+
+To understand the real-time dynamics across these diverse systems, the applicant and his collaborators have further advanced a real-time fRG framework based on the pioneer works~\cite{Berges:2008sr,Berges:2012ty}. We have employed this framework to study the relativistic microscopic $O(4)$ model. where we have obtained the spectral function at different spatial momentum and frequency, especially at the critical temperature, and also extracted the dynamic critical exponents~\cite{Tan:2021zid}. Additionally, we have investigated dynamic critical exponents for various dynamical universality classes within the Hohenberg–Halperin classification, including Model A~\cite{Chen:2023tqc} and Model H~\cite{Chen:2024lzz}, where the liquid-gas transition and the QCD critical point belong to the Model H universality class. Our recent work also uncovered a universal damping relation for pseudo-Goldstone modes near the critical point\cite{Tan:2024fuq}. Additionally,  we have developed a high-precision numerical method to solve the fRG fixed-point equations, which is essential for calculating both static and dynamic critical exponents~\cite{Tan:2022ksv}.
+
+In this section, our focus will be on the following topics:
+\begin{itemize}
+\item {\bf Spectral Properties of the Microscopic Theory:} We will extend our previous study on the $O(4)$ scalar theory~\cite{Tan:2021zid} to the more general $O(N)$ model across various spatial dimensions, employing an improved truncation scheme. Our goal is to solve the flow equations for the four-point vertex (with two external frequency dependencies) and to compute the spectral function and corresponding correlation functions in a self-consistent manner. We will investigate the scaling behavior of the spectral function and explore potential scaling laws for the real and imaginary parts of the four-point vertex near the critical temperature. Additionally, we aim to extract the dynamic critical exponent based on the scaling hypothesis of the spectral function. Notably, as this model lacks dissipation, the extracted dynamic critical properties will serve as a benchmark for subsequent studies on mesoscopic systems with dissipation (e.g., Model A and Model G).
+
+
+\item {\bf Damping and propagation of pseudo-Goldstone:} Real-time damping of collective modes associated with spontaneously broken approximate symmetries is a critical aspect of phase transition dynamics, with far-reaching implications for systems ranging from condensed matter to the QCD phase diagram. Our recent studies have identified a universal damping mechanism for pseudo-Goldstone modes in the critical regime. In particular, the pseudo-Goldstone modes exhibiting purely damped behavior are characteristic of Model A dynamics, whereas those displaying both damping and propagation are associated with Model G. We will collaborate with experimental groups at the Innovation Academy for Precision Measurement Science and Technology, Wuhan, China, using an ion trap to create pinned density waves (1D) and Wigner crystals (2D/3D) as analogs to simulate pseudo-Goldstone modes. By measuring the spectral properties and dispersion relations of the Wigner crystals, we aim to identify the damping and propagation characteristics of the pseudo-Goldstone modes and compare these experimental results with our previous theoretical predictions \cite{Tan:2024fuq}.
+
+\item {\bf Transition from the microscopic to mesoscopic:} To investigate the transition from the microscopic to mesoscopic dynamics, we will use a simple $O(1)$ model that interpolates between the two regimes. The scale-dependent effective action is constructed by adding a dissipative term to the microscopic action. 
+At zero temperature, we have a relativistic microscopic theory with no damping and a dispersion relation of $\omega = \pm m$ at vanishing spatial momentum. At high temperature, we observe a purely dissipative theory e.g., Model A, with a purely damping mode in the dispersion relation. We propose that the transitions from low to high temperature with a dispersion relation $\omega = \pm \sqrt{m(T)^2 - \Omega(T)^2} - \mathrm{i}\Omega(T)$. We aim to identify an emergent temperature scale $0 < T^* < T_c$, such that for temperatures below this scale($0 < T < T^*$), two damped propagating modes exist, i.e., $m(T) > \Omega(T)$. Above this scale($T_c>T > T^*$), the dispersion becomes purely imaginary, resulting in two purely damped modes, with $m(T) < \Omega(T)$. We aim to investigate the transition from damped propagating modes to purely dissipative dynamics. Additionally, we seek to uncover potential universal scaling behavior near the emergent temperature $T^*$.
+
+\item {\bf QCD-assisted mesoscopic Langevin dynamics:} A possible way to connect the microscopic theory to the mesoscopic dynamics is to simulate a QCD-assisted Langevin transport model where the effective potential is obtained from first-principle fRG calculation and the transport coefficient is obtained from the spectral function, these inputs are calculated from the fundamental QCD theories. We have already investigate the Langevin dynamics for critical mode in the QCD phase diagram in our recent work. We plan to extend this study to couple with conserved charges and also include the soft modes in the Langevin dynamics. This study provides a simple way to understand the non-equilibrium dynamics of the QCD matter and connect the microscopic theory to the mesoscopic Langevin dynamics.
+\end{itemize}
+
+
+\section{From microscopic to macroscopic hydrodynamics}
+Hydrodynamics serves as an effective framework for describing the collective behavior of strongly correlated many-body systems near equilibrium, particularly in the long-wavelength, low-frequency regime.  It is characterized by a finite set of hydrodynamic variables, the slow modes of the system, such as conserved quantities, pseudo-Goldstone modes at low temperatures, and the critical order parameter near phase transitions, while all other degrees of freedom rapidly relax to equilibrium. The equations of motion for these slow modes are dictated by conservation laws and symmetries, with the underlying microscopic details encoded in the hydrodynamic constitutive relations. These relations, expressed in terms of conserved charges, densities, and their gradients, feature transport coefficients that quantify the system's response to external perturbations and are crucial for understanding its non-equilibrium dynamics.
+
+
+Unveiling the emergence of hydrodynamics from fundamental microscopic theories remains a captivating challenge. One promising approach involves employing effective field theory (EFT) on the Schwinger–Keldysh contour~\cite{Crossley:2015evo,Glorioso:2017fpd} which provides a systematic framework for constructing and analyzing hydrodynamics via a derivative expansion. By integrating out the fast modes of the underlying microscopic system, one can derive an effective action for the slow modes—those associated with conserved quantities (e.g., energy-momentum) and their fluctuations, as non-conserved modes thermalize on much shorter timescales. The effective action is obtained through a gradient expansion of the hydrodynamic fields, ensuring consistency with the system's symmetries, while the transport coefficients in the constitutive relations are computed through loop calculations of the corresponding correlation functions. However, the main drawback of this construction is that it is disconnected from the underlying microscopic theory, s.t. one needs to supply input about transport coefficients independently of the EFT construction and there are no established methods to do so in the non-perturbative regime.
+
+
+
+The real-time fRG approach offers a potential framework for deriving hydrodynamics directly from microscopic theories, thereby overcoming some of the limitations of EFT on the Schwinger–Keldysh contour. At the UV scale, the fundamental degrees of freedom are quarks and gluons. As we successively integrate the fluctuations at different energy scales, an effective action for the slow modes is obtained. The transformation from microscopic degrees of freedom to macroscopic hydrodynamic variables may be achieved either via a Hubbard–Stratonovich transformation~\cite{Fu:2019hdw} or by explicitly constructing the relevant scattering channels~\cite{Fu:2025hcm}. Furthermore, transport coefficients can be extracted from real-time correlation functions of the corresponding operators. To achieve this objective, we will first investigate the connection between the microscopic $O(N)$ theory and its macroscopic hydrodynamic behavior before extending our study to QCD matter.
+
+\begin{itemize}
+\item {\bf Connection between microscopic $O(N)$ theory and hydrodynamics:} We will study the $O(N)$ scalar field theory with spontaneous symmetry broken and also a small explicit symmetry breaking. Microscopically, the theory is described by a $N$ component scalar field. On the macroscopic level, the slow modes correspond to the $N(N-1)/2$ conserved charges associated with the $O(N)$ group. At low temperature, additional $N-1$ transverse soft modes emerge, while near the critical temperature additional $N$ critical modes become significant. With conserved charges present, the dynamical critical behavior is expected to fall within the Model G universality class. We will explore two strategies for connecting the microscopic theory to macroscopic hydrodynamics: (i) The simplest approach is to treat the conserved charges as separate degrees of freedom. The scale-dependent effective action is constructed by adding a Yukawa-type interaction between the conserved charges and the fundamental $O(N)$ fields. The transformation from microscopic degrees of freedom to macroscopic hydrodynamic variables can be reflected by the running of the mass of the scale field and the susceptibilities of the conserved charges. (ii) A more self-consistent approach is to treat the charge densities as a composite field as $n_{a b}=\phi_a \frac{\partial}{\partial t} \phi_b-\phi_b \frac{\partial}{\partial t} \phi_a$ to explicitly ensure the conservation of the charges. By adding some appropriate tensor structure to the four-point vertex of $O(N)$ field, one can construct the fRG flow of this composite field $n_{ab}$. A further extension will include conserved energy and momentum. The fRG flow from the UV to the IR will elucidate the transformation of microscopic degrees of freedom into macroscopic hydrodynamic variables. This will also allow to compute transport coefficients, in this case the diffusion coefficient of the conserved charges.
+
+
+
+\item {\bf From QCD to hydrodynamics:} The most challenging step is to connect the fundamental degrees of freedom in QCD (quarks and gluons) to the macroscopic hydrodynamics of the quark–gluon plasma. This constitutes a long-term research objective. We will inspired by the previous study in the $O(N)$ system. Building on insights from previous studies in the $O(N)$ system. We aim to derive the hydrodynamic equations and transport properties of QCD matter from first-principle real-time fRG calculations. This approach will integrate quantum, thermal, density, and critical fluctuations as well as nonequilibrium effects into a unified framework.
+
+
+\end{itemize}
+% \bibliography{ref-lib}% Produces the bibliography via BibTeX.
+% \bibliography{ref-lib}
+% \setlength\bibitemsep{2pt}
+\printbibliography
+
+\end{document}
+

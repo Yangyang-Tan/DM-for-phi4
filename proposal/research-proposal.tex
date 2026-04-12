@@ -1,0 +1,199 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[top=1.5cm, bottom=1.5cm, left=1.5cm, right=1.5cm]{geometry}
+\usepackage{graphicx} 
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tabulary}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=cyan,
+	filecolor=blue,      
+	urlcolor=blue,
+	citecolor=blue,
+}
+\usepackage[backend=bibtex,style=nature,eprint=false]{biblatex}
+\AtEveryCitekey{\clearfield{extradate}}
+\AtEveryBibitem{\clearfield{extradate}}
+\AtEveryBibitem{\clearfield{month}}
+\AtEveryCitekey{\clearfield{month}}
+\AtEveryBibitem{\clearfield{address}}
+\AtEveryCitekey{\clearfield{address}}
+% \DeclareFieldFormat{linked}{%
+%   }
+
+\addbibresource{ref-lib.bib}
+\ExecuteBibliographyOptions{doi=false}
+
+\newbibmacro{string+doiurlisbn}[1]{%
+  \iffieldundef{doi}{%
+    \iffieldundef{url}{%
+    \href{http://arxiv.org/abs/\thefield{eprint}}{#1}%
+    }{%
+      \href{\thefield{url}}{#1}%
+    }%
+  }{%
+    \href{http://dx.doi.org/\thefield{doi}}{#1}%
+  }%
+}
+
+\DeclareFieldFormat{title}{\usebibmacro{string+doiurlisbn}{\mkbibemph{#1}}}
+\DeclareFieldFormat[article,incollection]{title}%
+    {\usebibmacro{string+doiurlisbn}{\mkbibquote{#1}}}
+
+
+% \DeclareFieldFormat{title}{\usebibmacro{string+doi}{\mkbibemph{#1}}}
+% \DeclareFieldFormat[article]{title}{\usebibmacro{string+doi}{\mkbibquote{#1}}}
+
+% \usepackage[T1]{fontenc}
+% \usepackage{lmodern} \normalfont %to load T1lmr.fd 
+% \usepackage{bold-extra}
+% \usepackage[OT1]{fontenc}
+% \renewcommand*\familydefault{\sfdefault}
+% \usepackage{slantsc}
+\usepackage{array}
+\usepackage{amsmath}
+% \setkomafont{subsection}{\usefont{T1}{fvm}{m}{n}}
+% \setkomafont{section}{\usefont{T1}{fvs}{b}{n}\Large}
+
+\newcommand{\lw}[1]{[{\bf \color{red}{LW: #1}}]}
+
+% For underlines
+% \usepackage{ulem}
+\newcommand{\longunderline}[0]{\rule{0.75\textwidth}{0.4pt}}
+
+% Remove page numbers
+% \pagenumbering{gobble}
+
+% No paragraph indentation
+% \setlength{\parindent}{0pt}
+
+
+\begin{document}
+\begin{center}
+    \textbf{\Large Research Proposal}
+\end{center}
+
+
+
+\vspace{0.5cm}
+\textbf{Name:} Yang-yang Tan
+
+\vspace{0.5cm}
+\textbf{A. Research topic title}
+
+Bridging Scales and Representations: Machine Learning Meets the Renormalization Group
+
+\vspace{0.5cm}
+\textbf{B. Summary (200 words)}
+
+This proposal studies how machine learning can be combined with renormalization-group ideas, which describe how physical systems change from short to long length scales.
+
+The first goal is to use diffusion models, a class of generative AI models, as new sampling tools for scalar field theories in two and three dimensions. I will focus in particular on the region near phase transitions, where conventional Monte Carlo simulations become inefficient because configurations remain correlated for a long time. I will also study real-time classical-statistical simulations and use momentum-space two-point correlations to understand how these models learn short- and long-distance structure.
+
+The second goal is to develop neural-network methods for difficult renormalization-group calculations, including equations with many coupled variables, full momentum dependence, and kernels that appear in RG-based sampling schemes. The third goal is to connect microscopic field theories to macroscopic hydrodynamics using real-time functional renormalization group methods, with the long-term aim of deriving transport properties of QCD matter from first principles.
+
+\vspace{0.5cm}
+\textbf{C. Objectives}
+
+\textit{Purpose.}
+The purpose of this research is to build a bridge between machine learning and renormalization-group methods so that each can strengthen the other. On the one hand, machine learning can make hard many-variable physics calculations more tractable. On the other hand, renormalization-group ideas can provide a clearer physical interpretation of how modern generative models work across different scales.
+
+\textit{Background.}
+The renormalization group systematically tracks how relevant degrees of freedom change from short to long distances, yet many RG calculations remain numerically prohibitive in high-dimensional settings. Independently, diffusion models have become a leading paradigm in generative AI, yet their connection to multi-scale physics is not well understood. Recent work has begun to bridge these areas: diffusion models have been connected to stochastic quantization in lattice field theory\cite{Wang:2023exq}. At the same time, the long-standing challenge of deriving macroscopic hydrodynamic behavior from microscopic quantum field theories calls for new tools that can handle the full complexity of real-time, nonequilibrium RG flows. These developments make the present moment especially timely for a systematic investigation of the ML--RG interface and its physical applications.
+
+\textit{Significance.}
+This research is significant for both physics and machine learning. For physics, it may open access to renormalization-group problems that are currently beyond the reach of standard numerical methods, and it may provide a new route from microscopic quantum field theory to macroscopic transport and hydrodynamic behavior. For machine learning, it may offer physically grounded ways to analyse, test, and improve generative models, especially in settings where multi-scale correlations are essential. Because the project connects field theory, nonequilibrium dynamics, and modern AI, it is expected to have broad relevance across several subfields of theoretical and computational physics.
+
+\vspace{0.5cm}
+\textbf{D. Research content}
+
+\subsection*{1. Diffusion Models and Scalar Field Theory}
+
+Diffusion models\cite{SohlDickstein:2015,Ho:2020,Song:2021} learn to reverse a gradual corruption of data into noise, reconstructing structured samples from a simple prior. This progressive destruction and recovery of structure is closely analogous to the scale-dependent coarse graining central to field theory. Recently, this analogy was made concrete by establishing a direct connection between diffusion models and stochastic quantization in lattice field theory\cite{Wang:2023exq}, where the diffusion model served as a global sampler for two-dimensional $\phi^4$ theory, significantly reducing autocorrelation times near the phase transition. Building on this foundation, I propose the following research directions.
+
+\begin{itemize}
+    \item \textbf{Extension to 3D Scalar Field Theory and Real-Time Classical-Statistical Simulations:}
+The diffusion-model-based sampling demonstrated in Ref.\cite{Wang:2023exq} was restricted to two-dimensional Euclidean $\phi^4$ theory. I propose to extend this approach to three-dimensional scalar field theory,
+where the configuration space grows substantially and the interplay between short- and long-range
+correlations becomes considerably richer. The near-critical regime is of particular interest: critical slowing down causes conventional Monte Carlo simulations to suffer from long autocorrelation times, and previous studies have indicated that diffusion-model-based sampling can alleviate this problem\cite{Wang:2023exq}. I therefore aim to apply diffusion models to configuration generation near criticality in three-dimensional scalar field theory, and to investigate whether they can provide a more efficient route to studying critical phenomena. Beyond the Euclidean setting, I will explore diffusion models for real-time classical-statistical simulations, using them as generative samplers for classical field configurations relevant for nonequilibrium dynamics, transport phenomena, and real-time correlation functions.
+
+    \item \textbf{Propagator Evolution During Training and Reverse Diffusion:}
+    I propose to investigate how the momentum-space propagator (the two-point correlation function in Fourier space) evolves during training and during the reverse diffusion trajectory from noise to structured configurations. The central question is how and when the infrared and ultraviolet parts of the propagator are accurately reproduced, which directly reveals how the model learns the long-distance and short-distance structures of field-theory configurations. This provides a physics-informed diagnostic that goes beyond conventional loss metrics and offers a concrete multi-scale perspective on how diffusion models learn.
+
+    \item \textbf{Momentum-Space Correlation Functions as Image Generation Quality Metrics:}
+    When diffusion models are applied to real-world image data, the momentum-space propagator captures the spatial correlation structure across all length scales. The generative AI community currently relies predominantly on the Fr\'echet Inception Distance (FID)\cite{Heusel:2017FID} as the standard metric for evaluating image generation quality. However, FID depends on features extracted from a pre-trained classifier and does not directly characterize the spatial structure of generated images.
+
+    I propose to introduce the momentum-space correlation function as a complementary, physics-motivated metric for assessing image generation quality. Unlike FID, this metric is model-independent and directly quantifies how well a generative model reproduces the multi-scale spatial correlations present in the training data. I will systematically study the behavior of the propagator during the generation process for both lattice field configurations and natural images, and evaluate its effectiveness as a diagnostic tool for identifying mode collapse, scale-dependent artifacts, and other failure modes of generative models.
+
+    \item \textbf{Structural Connection Between Diffusion Models and Renormalization:}
+    A deep structural analogy exists between the diffusion process and the renormalization group (RG) flow. The forward diffusion progressively destroys fine-grained (ultraviolet) structure, driving the data distribution toward a featureless Gaussian, which mirrors the coarse-graining procedure of the RG that integrates out short-distance fluctuations from UV to IR scales. Conversely, the reverse diffusion reconstructs UV details from the IR prior, analogous to an inverse RG flow. I propose to formalize this correspondence and investigate whether the diffusion time $t$ can be systematically mapped to an RG scale $k$, and how this mapping depends on the choice of noise schedule.
+
+    Recently, Masuki et al.\cite{masuki2025generativediffusionmodelinverse} replaced the standard Langevin dynamics in the forward process with the Wilson-Polchinski RG equation, demonstrating that RG-based diffusion models can generate high-quality images and protein structures. I propose to explore the fRG as an alternative framework for constructing the forward process. While both the Wilson-Polchinski equation and the fRG are exact RG equations, the fRG offers a unique advantage with its systematic non-perturbative expansion scheme, which may lead to more efficient and physically motivated noise schedules that respect the scale hierarchy of the data.
+
+    Additionally, I will investigate alternative stochastic dynamics for the forward process. Current diffusion models are based on Langevin dynamics, corresponding to Model A in the Hohenberg-Halperin classification\cite{Hohenberg:1977ym}, a purely dissipative process. I propose to extend this to Model B dynamics, which features conservative noise and conserved order parameters. This extension could provide new generative architectures with distinct sampling properties, and further illuminate the connection between physical dynamics and generative modeling.
+\end{itemize}
+
+
+\subsection*{2. Machine Learning for RG Equations and Kernels}
+
+
+The functional renormalization group (fRG) is governed by Wetterich's equation\cite{Wetterich:1992yh} for the scale-dependent effective action $\Gamma_k[\phi]$, which interpolates between the classical action at the UV scale and the full quantum effective action in the IR. Although formally exact, the equation requires truncation schemes such as the derivative expansion (DE) or the vertex expansion (VE), and even after truncation the resulting flow equations remain challenging in high-dimensional settings. Recent progress suggests that physics-informed neural networks (PINNs) can provide accurate solutions to DE flows\cite{Tan:2026bqn}. The next stage is to tackle problems that remain genuinely difficult for conventional solvers.
+
+\begin{itemize}
+    \item \textbf{PINNs for High-Dimensional fRG Flow Equations:} Two classes of fRG problems remain genuinely difficult for conventional numerical solvers. The first is the derivative expansion with multiple background-field dependencies, where the effective potential depends on several invariants or condensates and conventional grid-based methods become cumbersome as the dimensionality of the field space increases. Physically important examples include $O(N)\times O(M)$ models and low-energy effective theories for QCD with light and strange chiral condensates, especially in regimes with multiple competing minima such as first-order phase transitions. The second is the vertex expansion, which captures the full momentum dependence of $n$-point functions and is essential for studies of Yang-Mills theory\cite{Cyrol:2016tym}, QCD\cite{Fu:2025hcm}, and spectral functions in real-time fRG\cite{Tan:2021zid}. Discretizing even a four-point vertex with full momentum dependence would require over a billion grid points ($32^6$), making conventional approaches prohibitive. PINNs are well suited for both problems: they provide continuous, mesh-free representations and can incorporate the flow equations directly into the loss function. I propose to apply PINNs to multi-field derivative-expansion flows and to the self-consistent vertex-expansion equations in the $O(N)$ model, with possible extensions to Yang-Mills theory and QCD.
+
+
+    \item \textbf{PINNs for Physics-Informed Kernels in PIRG-Based Sampling:} Physics-informed renormalization group flows\cite{Ihssen:2025ybn} construct generative sampling architectures in terms of physics-informed kernels that determine the layerwise propagation between RG scales. Once a trajectory for the action is specified, the RG equation reduces to a simple differential equation for the kernel, providing analytic access to each layer independently. However, in two- and three-dimensional field theories the kernels depend on high-dimensional configurations and direct numerical solution becomes prohibitively expensive.
+
+    I propose to combine PINNs with this framework, using neural networks to solve for the kernels in higher-dimensional scalar field theories. In the near term, I will focus on two- and three-dimensional testbeds; in the longer term, this strategy may enable scalable, RG-structured generative architectures for lattice field theory.
+    \end{itemize}
+
+
+\subsection*{3. From Microscopic Theory to Emergent Hydrodynamics}
+
+Hydrodynamics describes the collective behavior of strongly correlated many-body systems in the long-wavelength, low-frequency regime. It is characterized by a small number of slow modes, such as conserved charges, pseudo-Goldstone modes at low temperatures, and the critical order parameter near phase transitions, while all other degrees of freedom relax rapidly to equilibrium. The equations of motion for these slow modes are dictated by conservation laws and symmetries, and the underlying microscopic details are encoded in the transport coefficients that appear in the hydrodynamic constitutive relations.
+
+A central open question is how hydrodynamics emerges from fundamental microscopic theories. Effective field theory on the Schwinger-Keldysh contour\cite{Crossley:2015evo} provides a systematic framework for constructing hydrodynamic equations, but it requires transport coefficients as external input and is disconnected from the underlying microscopic theory in the non-perturbative regime. The real-time fRG approach offers a promising route for deriving hydrodynamics directly from microscopic theories by successively integrating out fluctuations at different energy scales, thereby obtaining an effective action for the slow modes and extracting transport coefficients from real-time correlation functions.
+
+\begin{itemize}
+    \item \textbf{Connection Between Microscopic $O(N)$ Theory and Hydrodynamics:}
+    I will study the $O(N)$ scalar field theory with spontaneous symmetry breaking and a small explicit symmetry breaking. Microscopically, the theory is described by $N$ real scalar fields. On the macroscopic level, the slow modes correspond to the $N(N-1)/2$ conserved charges associated with the $O(N)$ group, supplemented by $N-1$ transverse pseudo-Goldstone modes at low temperature and $N$ critical modes near the phase transition. With conserved charges present, the dynamical critical behavior is expected to fall within the Model G universality class\cite{Hohenberg:1977ym}. I will explore two strategies for connecting the microscopic theory to macroscopic hydrodynamics: (i) treating the conserved charges as separate degrees of freedom coupled to the fundamental $O(N)$ fields via a Yukawa-type interaction\cite{Fu:2019hdw}, and (ii) constructing the charge densities as composite fields to explicitly ensure charge conservation. The fRG flow from the UV to the IR will elucidate how microscopic degrees of freedom transform into macroscopic hydrodynamic variables, and will allow us to compute transport coefficients such as the diffusion coefficient of the conserved charges.
+
+    \item \textbf{Long-Term Goal: From QCD to Hydrodynamics:}
+    The most challenging extension is to connect the fundamental degrees of freedom in QCD (quarks and gluons) to the macroscopic hydrodynamics of the quark-gluon plasma. Building on insights from the $O(N)$ system, I aim to derive hydrodynamic equations and transport properties of QCD matter from first-principle real-time fRG calculations. This approach would integrate quantum, thermal, density, and critical fluctuations as well as nonequilibrium effects into a unified framework, providing a direct bridge from microscopic QCD to the emergent hydrodynamic behavior observed in relativistic heavy-ion collisions.
+\end{itemize}
+
+\subsection*{Timeline and preparation}
+Sections~1 and 2 are supported by substantial preliminary work: I have developed a working diffusion-model codebase for 2D and 3D $\phi^4$ theory, and a manuscript on PINNs for fRG equations has been submitted\cite{Tan:2026bqn}. In \textbf{Year~1}, I will focus on extending diffusion models to 3D near-critical regimes and on propagator diagnostics (Section~1), as well as applying PINNs to multi-field fRG flows (Section~2). In \textbf{Year~2}, I will investigate the RG--diffusion correspondence, Model~B dynamics, and PIRG kernels. In \textbf{Year~3}, I will develop the real-time fRG framework for emergent hydrodynamics in the $O(N)$ model (Section~3) and explore extensions toward QCD.
+
+\vspace{0.5cm}
+\textbf{E. Originality of the research}
+
+The originality of this proposal lies in treating machine learning and renormalization-group methods as a single multi-scale research program, rather than using one only as a technical aid for the other. Compared with existing work, which often focuses either on ML-accelerated solvers for specific benchmark problems or on qualitative analogies between neural networks and RG, this proposal develops the connection in three concrete directions with direct physics payoffs.
+
+\textit{Compared with existing fRG numerics.}
+Current numerical approaches are effective for low-dimensional truncations, but become difficult for multi-field effective potentials, full-momentum vertex functions, and RG kernels in high dimensions. Building on recent PINN progress for simpler derivative-expansion flows\cite{Tan:2026bqn}, this proposal extends ML methods to these substantially harder RG problems. If successful, this would broaden the scope of quantitative fRG studies of QCD phase transitions, critical phenomena, and RG-structured sampling.
+
+\textit{Compared with current diffusion-model research.}
+Most diffusion-model studies focus either on natural images or on low-dimensional Euclidean field-theory benchmarks\cite{Wang:2023exq}. In contrast, this proposal targets three-dimensional scalar field theory, near-critical regimes with severe autocorrelation problems, and real-time classical-statistical simulations. It also introduces physically interpretable diagnostics, such as the momentum-space propagator and correlation functions, and studies the correspondence between diffusion time and RG scale. These developments would contribute to a more physics-grounded understanding of generative modeling.
+
+\textit{Compared with existing approaches to hydrodynamics.}
+Hydrodynamic effective theories are powerful but usually require transport coefficients as external input, while first-principle derivations from microscopic quantum theories remain limited. The proposed real-time fRG program aims to connect microscopic field theory, slow modes, and transport coefficients within a single framework. Establishing this connection in the $O(N)$ model would already be a significant conceptual advance, and the long-term extension to QCD could yield first-principle predictions for the transport properties of the quark-gluon plasma, with clear academic significance for nonequilibrium quantum field theory and heavy-ion physics.
+
+
+
+\vspace{0.5cm}
+\textbf{F. Reason for selection of the desired lab}
+
+I learned of the RIKEN Center for Interdisciplinary Theoretical and Mathematical Sciences (iTHEMS) through Dr.~Lingxiao Wang, a Research Scientist at iTHEMS and leader of the DEEP-IN working group. I visited iTHEMS in June 2025 and have delivered two talks in the DEEP-IN Seminar series. During these visits I had extensive discussions with Dr.~Wang and other iTHEMS members about some of the research directions outlined in this proposal. My ongoing collaboration with Dr.~Wang on applying machine learning to functional renormalization group equations and diffusion models for lattice field theory constitutes a central component of this proposal.
+
+I wish to work under the supervision of Prof.~Yoshimasa Hidaka, Deputy Director of iTHEMS. Prof.~Hidaka is a leading expert in nonequilibrium quantum field theory, spontaneous symmetry breaking, and  hydrodynamics. His recent work on the unified description of the Nambu-Goldstone theorem and transport properties in the quark-gluon plasma directly overlaps with the third objective of this proposal, which aims to derive emergent hydrodynamic behavior from microscopic field theory using the real-time fRG framework. His guidance would be essential for the development of the hydrodynamics part of the proposed research.
+
+iTHEMS is an interdisciplinary research center that fosters collaboration among researchers in theoretical physics, computational science, and mathematics. This environment is particularly well suited for a research program at the intersection of quantum field theory, machine learning, and nonequilibrium dynamics. The combination of Prof.~Hidaka's expertise in nonequilibrium QFT, Dr.~Wang's experience in machine learning, and the broad interdisciplinary network at iTHEMS would provide an ideal setting for carrying out this research. All research activities will be conducted at RIKEN iTHEMS in Japan.
+
+
+\printbibliography
+
+
+\end{document}

@@ -1,0 +1,99 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{soul}
+\newcommand\dunderline[3][-2pt]{{%
+  \sbox0{#3}%
+  \ooalign{\copy0\cr\rule[\dimexpr#1-#2\relax]{\wd0}{#2}}}}
+\usepackage[left=2cm, right=2cm, top=2cm, bottom=2cm]{geometry}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=cyan,
+	filecolor=blue,
+	urlcolor=blue,
+	citecolor=blue,
+}
+\usepackage{xcolor}
+\usepackage{parskip}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+    {\LARGE \dunderline{1.5pt}{\textbf{Curriculum Vitae}}}
+\end{center}
+
+\vspace{0.5em}
+
+\dunderline{1.5pt}{\large{\textbf{Name:} Yang-yang Tan}}
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{A. Education}}}
+\vspace{0.5cm}
+
+\noindent
+\textbf{Dalian University of Technology}, Dalian, Liaoning Province, China\\
+Ph.D., Theoretical Physics\\
+Thesis: \textit{Towards Real-Time Dynamics of Critical Phenomena in Strongly Correlated Systems}\\
+% Advisor: Prof.\ Wei-jie Fu\\
+Date of Graduation: July 2025
+
+\vspace{0.6em}
+
+\noindent
+\textbf{Dalian University of Technology}, Dalian, Liaoning Province, China\\
+B.S., Physics\\
+% Thesis: \textit{The Deep Learning Method in Gluon Spectra Function}\\
+% Advisor: Prof.\ Wei-jie Fu\\
+Date of Graduation: July 2019
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{B. Research/Employment History}}}
+\vspace{0.5cm}
+
+\noindent
+\begin{tabular}{@{}p{3.8cm}p{12cm}@{}}
+Apr.\ 2026 -- Present & Postdoctoral Researcher, The University of Tokyo, Tokyo, Japan \\[0.3em]
+Dec.\ 2025 -- Mar.\ 2026 & Visiting Scholar, Tsinghua University, Beijing, China \\[0.3em]
+% Sep.\ 2019 -- Jul.\ 2025 & Ph.D.\ Student, Dalian University of Technology, Dalian, China \\
+\end{tabular}
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{C. Fellowships / Awards}}}
+\vspace{0.5cm}
+
+\vspace{1cm}
+
+\dunderline{1.5pt}{\large{\textbf{D. Other Activities}}}
+\vspace{0.5cm}
+
+\large{\textbf{(1). Academic Collaboration}}
+\normalsize\vspace{1ex}
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{DM-LFT Collaboration} (Diffusion Model-Lattice Field Theory): G.\ Aarts, S.\ Chen, D.\ E.\ Habibi, A.\ Ipp, R.\ Kapust, B.\ Lucini, D.\ M\"uller, J.\ M.\ Pawlowski, T.\ R.\ Ranner, Y.-y.\ Tan, L.\ Wang, W.\ Wang, K.\ Zhou, and Q.\ Zhu. (2026)
+
+\item \href{https://fqcd-collaboration.github.io}{\textbf{fQCD Collaboration}} (Functional QCD): J.\ Braun, Y.-r.\ Chen, W.-j.\ Fu, F.\ Gao, C.\ Huang, F.\ Ihssen, K.\ Kockler, Y.\ Lu, J.\ M.\ Pawlowski, F.\ Rennecke, F.\ Sattler, J.\ Stoll, Y.-y.\ Tan, Z.-n.\ Wang, R.\ Wen, J.\ Wessely, S.\ Yin, H.-w.\ Zheng and N.\ Zorbach. (2026)
+\end{itemize}
+
+\vspace{0.4cm}
+
+\large{\textbf{(2). Technical Skills}}
+\normalsize\vspace{1ex}
+
+\noindent GitHub Profile: \href{https://github.com/Yangyang-Tan}{\textcolor{blue}{https://github.com/Yangyang-Tan}}
+
+\begin{itemize}[leftmargin=2em]
+\item Wolfram Language \& Mathematica --- Expert, 12 years of experience
+\item Julia --- Proficient, 5 years of experience
+\item Python (PyTorch) --- Proficient, 2 years of experience
+\item Large-scale parallel computing and GPU computing (based on Julia) --- Proficient, 5 years of experience
+\end{itemize}
+
+\end{document}
