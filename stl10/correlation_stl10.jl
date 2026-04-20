@@ -1,10 +1,10 @@
-# Correlation analysis for CIFAR-10 grayscale diffusion model samples.
+# Correlation analysis for STL-10 grayscale diffusion model samples (64x64).
 # Computes radially-averaged momentum propagator with bootstrap errors,
 # comparing training data (reference) against DM samples at each epoch.
 #
 # Usage:
-#   julia correlation_cifar10.jl
-#   (edit param_sets at the bottom to select class/network/epochs)
+#   julia correlation_stl10.jl
+#   (edit param_sets at the bottom)
 
 using NPZ
 using Statistics
@@ -22,34 +22,30 @@ const MAX_DIAG = 0.51
 #  Path helpers
 # ═══════════════════════════════════════════════════════════════════
 
-function cifar10_model_dir(class_name::String, network::String)
-    joinpath(BASE_DIR, "cifar10_$(class_name)_$(network)")
+function stl10_model_dir(output_name::String, network::String)
+    joinpath(BASE_DIR, "stl10_$(output_name)_$(network)")
 end
 
-function train_data_path(class_name::String, network::String)
-    joinpath(cifar10_model_dir(class_name, network),
-             "data", "cifar10_$(class_name)_train_32x32.npy")
+function train_data_path(output_name::String, network::String, class_name::String)
+    joinpath(stl10_model_dir(output_name, network),
+             "data", "stl10_$(class_name)_train_64x64.npy")
 end
 
-function dm_sample_path(class_name::String, network::String, epoch::String;
+function dm_sample_path(output_name::String, network::String, epoch::String;
                         subdir::String="data")
-    joinpath(cifar10_model_dir(class_name, network),
+    joinpath(stl10_model_dir(output_name, network),
              subdir, "samples_epoch=epoch=$(epoch).npy")
 end
 
-function correlation_dir(class_name::String, network::String)
-    dir = joinpath(cifar10_model_dir(class_name, network), "correlation")
+function correlation_dir(output_name::String, network::String)
+    dir = joinpath(stl10_model_dir(output_name, network), "correlation")
     mkpath(dir)
     return dir
 end
 
-"""
-Auto-discover all epoch strings available under the sample directory.
-Returns a sorted vector like ["0049", "0099", "0199", ...].
-"""
-function discover_epochs(class_name::String, network::String;
+function discover_epochs(output_name::String, network::String;
                          subdir::String="data")
-    dir = joinpath(cifar10_model_dir(class_name, network), subdir)
+    dir = joinpath(stl10_model_dir(output_name, network), subdir)
     isdir(dir) || return String[]
     epochs = String[]
     for f in readdir(dir)
@@ -60,26 +56,17 @@ function discover_epochs(class_name::String, network::String;
 end
 
 # ═══════════════════════════════════════════════════════════════════
-#  Core: compute propagators for one (class, network) set
+#  Core
 # ═══════════════════════════════════════════════════════════════════
 
 """
-    compute_propagators(; class_name, network, ...)
+    compute_propagators(; output_name, class_name, network, ...)
 
-Compute radially-averaged momentum propagators with bootstrap errors
-for training data (reference) and DM samples at each training epoch.
-
-Keyword arguments
-─────────────────
-- `class_name`   : CIFAR-10 class ("cat", "dog", etc.)
-- `network`      : model architecture ("unet" or "ncsnpp")
-- `epoch_list`   : explicit list of epoch strings, or `nothing` to auto-discover
-- `data_subdir`  : subdirectory under model dir containing .npy files (default "data")
-- `save`         : write .dat files  (default true)
-- `do_plot`      : create comparison plot  (default true)
+Compute propagators for training data (reference) and DM samples.
 """
 function compute_propagators(;
-        class_name::String,
+        output_name::String,
+        class_name::String   = "all",
         network::String      = "ncsnpp",
         epoch_list::Union{Vector{String}, Nothing} = nothing,
         data_subdir::String  = "data",
@@ -90,11 +77,11 @@ function compute_propagators(;
 
     dir_label = direction == :radial ? "radial" : string(direction)
     println("\n", "="^60)
-    println("  class = $class_name,  network = $network,  direction = $dir_label")
+    println("  STL-10: output_name=$output_name, class=$class_name, network=$network, direction=$dir_label")
     println("="^60)
 
     # ── Training data (reference) — use cache if available ──────
-    outdir = correlation_dir(class_name, network)
+    outdir = correlation_dir(output_name, network)
     dir_suffix = direction == :radial ? "" : "_$(dir_label)"
     cache_file = joinpath(outdir, "G_k_train_$(class_name)$(dir_suffix).dat")
 
@@ -105,9 +92,9 @@ function compute_propagators(;
         G_train     = cached[:, 2]
         G_train_err = cached[:, 3]
     else
-        train_file = train_data_path(class_name, network)
+        train_file = train_data_path(output_name, network, class_name)
         if !isfile(train_file)
-            @warn "Training data not found, skipping" path=train_file
+            @warn "Training data not found" path=train_file
             return nothing
         end
         println("  Computing training propagator (first time, direction=$dir_label)...")
@@ -125,8 +112,7 @@ function compute_propagators(;
 
     # ── Discover / validate epoch list ───────────────────────────
     if epoch_list === nothing
-        epoch_list = discover_epochs(class_name, network;
-                                     subdir=data_subdir)
+        epoch_list = discover_epochs(output_name, network; subdir=data_subdir)
     end
     if isempty(epoch_list)
         @warn "No DM sample files found"
@@ -141,7 +127,7 @@ function compute_propagators(;
         p = plot(k_train[2:end], G_train[2:end]; yerr=G_train_err[2:end],
                  seriestype=:scatter, xaxis=:log,
                  xlabel="|k|", ylabel="G(k)",
-                 title="CIFAR-10 $(class_name) — $(network) ($(dir_label))",
+                 title="STL-10 $(class_name) — $(network) (64×64, $(dir_label))",
                  label="Training", markerstrokecolor=:auto, legend=:topright)
     end
 
@@ -149,8 +135,7 @@ function compute_propagators(;
     dm_results = Dict{String, NamedTuple}()
 
     for epoch in epoch_list
-        fpath = dm_sample_path(class_name, network, epoch;
-                    subdir=data_subdir)
+        fpath = dm_sample_path(output_name, network, epoch; subdir=data_subdir)
         if !isfile(fpath)
             @warn "File not found, skipping" path=fpath
             continue
@@ -164,7 +149,7 @@ function compute_propagators(;
         dm_results[epoch] = (k_vals=k_dm, G_mean=G_dm, G_err=G_dm_err)
 
         if save
-            outdir = correlation_dir(class_name, network)
+            outdir = correlation_dir(output_name, network)
             writedlm(joinpath(outdir,
                         "G_k_DM_$(class_name)$(dir_suffix)_epoch=$(epoch).dat"),
                      [k_dm G_dm G_dm_err])
@@ -180,7 +165,7 @@ function compute_propagators(;
     if do_plot
         display(p)
         if save
-            outdir = correlation_dir(class_name, network)
+            outdir = correlation_dir(output_name, network)
             savefig(p, joinpath(outdir, "propagator_$(class_name)$(dir_suffix).pdf"))
             println("  ✓ Saved plot")
         end
@@ -195,13 +180,14 @@ end
 # ═══════════════════════════════════════════════════════════════════
 
 """
-    compute_merged_propagator(; class_name, network, epoch_list, label, ...)
+    compute_merged_propagator(; output_name, class_name, network, epoch_list, label, ...)
 
 Load DM samples from multiple epochs, concatenate, and compute a single
 propagator. Averages out parameter oscillations in the training plateau.
 """
 function compute_merged_propagator(;
-        class_name::String,
+        output_name::String,
+        class_name::String       = "all",
         network::String,
         epoch_list::Vector{String},
         label::String            = "merged",
@@ -214,12 +200,12 @@ function compute_merged_propagator(;
 
     println("\n", "="^60)
     println("  Merged propagator: label=$label, epochs=", join(epoch_list, ","))
-    println("  CIFAR-10 $(class_name), network=$network, direction=$dir_label")
+    println("  STL-10 $(class_name), network=$network, direction=$dir_label")
     println("="^60)
 
     all_cfgs = []
     for epoch in epoch_list
-        fpath = dm_sample_path(class_name, network, epoch; subdir=data_subdir)
+        fpath = dm_sample_path(output_name, network, epoch; subdir=data_subdir)
         if !isfile(fpath)
             @warn "File not found, skipping" path=fpath
             continue
@@ -243,7 +229,7 @@ function compute_merged_propagator(;
                                 direction=direction)
 
     if save
-        outdir = correlation_dir(class_name, network)
+        outdir = correlation_dir(output_name, network)
         writedlm(joinpath(outdir, "G_k_DM_$(class_name)$(dir_suffix)_$(label).dat"),
                  [k_vals G_mean G_err])
         println("  ✓ Saved merged propagator: $label")
@@ -253,26 +239,23 @@ function compute_merged_propagator(;
 end
 
 # ═══════════════════════════════════════════════════════════════════
-#  Parameter sets to process
-#
-#  Edit the list below and run the script.
-#  Set epoch_list = nothing to auto-discover all available epochs,
-#  or provide an explicit list like ["0049", "0099", "0499"].
+#  Parameter sets
 # ═══════════════════════════════════════════════════════════════════
 
 param_sets = [
-    (class_name="cat", network="ncsnpp", epoch_list=nothing,
-     data_subdir="data", direction=:radial),
-    # (class_name="cat", network="ncsnpp", epoch_list=nothing,
-    #  data_subdir="data", direction=:x),
-    # (class_name="cat", network="ncsnpp", epoch_list=nothing,
-    #  data_subdir="data", direction=:y),
-    # (class_name="cat", network="ncsnpp", epoch_list=nothing,
-    #  data_subdir="data", direction=:diagonal),
+    (output_name="unlabeled_all", class_name="all", network="ncsnpp",
+     epoch_list=nothing, data_subdir="data", direction=:radial),
+    # (output_name="unlabeled_all", class_name="all", network="ncsnpp",
+    #  epoch_list=nothing, data_subdir="data", direction=:x),
+    # (output_name="unlabeled_all", class_name="all", network="ncsnpp",
+    #  epoch_list=nothing, data_subdir="data", direction=:y),
+    # (output_name="unlabeled_all", class_name="all", network="ncsnpp",
+    #  epoch_list=nothing, data_subdir="data", direction=:diagonal),
 ]
 
 for ps in param_sets
     compute_propagators(;
+        output_name = ps.output_name,
         class_name  = ps.class_name,
         network     = ps.network,
         epoch_list  = ps.epoch_list,

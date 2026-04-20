@@ -128,11 +128,20 @@ def main():
     parser.add_argument("--network", type=str, default="ncsnpp",
                         choices=["scorenet", "unet", "ncsnpp"],
                         help="Network architecture: scorenet | unet | ncsnpp")
+    parser.add_argument("--output_suffix", type=str, default="",
+                        help="Suffix on the training output dir (e.g. '_sigma150')")
+    parser.add_argument("--ode_method", type=str, default="dpm2",
+                        choices=["dpm1", "dpm2", "dpm3", "rk45"],
+                        help="ODE solver when --method=ode (default dpm2)")
+    parser.add_argument("--n_repeats", type=int, default=4,
+                        help="Number of independent sampling passes to concatenate")
     args = parser.parse_args()
+
+    run_dir = f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
 
     # Get checkpoint
     if args.checkpoint is None:
-        ckpts = sorted(Path(f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}/models").glob(f"*{args.ep}*.ckpt"))
+        ckpts = sorted(Path(f"{run_dir}/models").glob(f"*{args.ep}*.ckpt"))
         args.checkpoint = str(ckpts[-1]) if ckpts else None
     print(f"Checkpoint: {args.checkpoint}")
 
@@ -144,7 +153,7 @@ def main():
     norm_min = hparams.get("norm_min") or -6.22
     norm_max = hparams.get("norm_max") or 6.19
     print(f"norm_min: {norm_min}, norm_max: {norm_max}")
-    output = f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}/data/"
+    output = f"{run_dir}/data/"
     if not os.path.exists(output):
         os.makedirs(output)
     output = os.path.join(output, "samples")
@@ -169,14 +178,16 @@ def main():
     model = model.to(args.device).eval()
 
     # Sample
-    print(f"Sampling ({args.method.upper()})...")
+    print(f"Sampling ({args.method.upper()})  num_steps={args.num_steps}  n_repeats={args.n_repeats}  num_samples/rep={args.num_samples}")
     if args.method == "em":
-        samples1 = model.sample(args.num_samples, args.num_steps,schedule='log')
-        samples2=model.sample(args.num_samples, args.num_steps,schedule='log')
-        samples3=model.sample(args.num_samples, args.num_steps,schedule='log')
-        samples4=model.sample(args.num_samples, args.num_steps,schedule='log')
-        samples = torch.concatenate([samples1, samples2, samples3, samples4], axis=0)
-        # samples = samples1
+        reps = [model.sample(args.num_samples, args.num_steps, schedule='log')
+                for _ in range(args.n_repeats)]
+        samples = torch.concatenate(reps, axis=0)
+    elif args.method == "ode":
+        reps = [model.sample_ode(args.num_samples, args.num_steps,
+                                 schedule='log', method=args.ode_method)
+                for _ in range(args.n_repeats)]
+        samples = torch.concatenate(reps, axis=0)
     elif args.method == "em2":
         samples = model.sample2(args.num_samples, args.num_steps)
         np.save("data/phi4_L128_k0.5_l0.022_t=0.2.npy", samples.detach().cpu().numpy())
@@ -229,10 +240,11 @@ def main():
     # Renormalize to original range at the end
     samples_renorm = (samples_with_z2 + 1) / 2 * (norm_max - norm_min) + norm_min
     
-    # Save as (L, L, num_samples*2)
+    # Save as (L, L, num_samples*n_repeats)
     samples_out = samples_renorm.transpose(1, 2, 0)
-    np.save(f"{output}_{args.ep}.npy", samples_out)
-    print(f"Saved samples to {output}.npy, shape: {samples_out.shape}")
+    tag = f"{args.method}_steps{args.num_steps}_{args.ep}"
+    np.save(f"{output}_{tag}.npy", samples_out)
+    print(f"Saved samples to {output}_{tag}.npy, shape: {samples_out.shape}")
 
     # Plot grid (only first plot_grid^2 samples)
     n = args.plot_grid
@@ -241,8 +253,8 @@ def main():
         ax.imshow(samples[i, 0].cpu().numpy(), cmap="viridis")
         ax.axis("off")
     plt.tight_layout()
-    plt.savefig(f"{output}_{args.ep}.png", dpi=150)
-    print(f"Saved plot to {output}.png")
+    plt.savefig(f"{output}_{tag}.png", dpi=150)
+    print(f"Saved plot to {output}_{tag}.png")
 
 
 if __name__ == "__main__":

@@ -7,13 +7,15 @@ Usage:
     python train_phi4.py --L 32 --k 0.5 --l 0.022 --data_path ../data/cfgs_k=0.5_l=0.022_32^3_t=10.jld2
 """
 
+import os
 import re
 import functools
 import argparse
 
+import numpy as np
 import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import ModelCheckpoint, Callback
 
 torch.set_float32_matmul_precision('medium')
 torch.backends.cudnn.benchmark = True
@@ -21,6 +23,21 @@ torch.backends.cudnn.benchmark = True
 from networks_3d import ScoreNet3D, ScoreNet3DUNetPeriodic, NCSNpp3D, NCSNpp3DSimple
 from diffusion_lightning_3d import DiffusionModel3D, marginal_prob_std
 from data_3d import FieldDataModule3D
+
+
+class LogScaleCheckpoint(Callback):
+    """Save checkpoints on a log-scale schedule."""
+    def __init__(self, dirpath, max_epochs, num_checkpoints=100):
+        super().__init__()
+        self.dirpath = dirpath
+        log_epochs = np.unique(np.geomspace(1, max_epochs, num=num_checkpoints).astype(int))
+        self.save_epochs = set(log_epochs.tolist())
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        epoch = trainer.current_epoch + 1
+        if epoch in self.save_epochs:
+            filepath = os.path.join(self.dirpath, f"epoch={epoch:04d}.ckpt")
+            trainer.save_checkpoint(filepath)
 
 
 def main():
@@ -36,10 +53,16 @@ def main():
     parser.add_argument("--device", type=str, default="cuda:0", help="GPU device")
     parser.add_argument("--data_path", type=str, default=None, help="Path to data file")
     parser.add_argument("--ckpt_path", type=str, default=None, help="Path to checkpoint for resuming training")
-    parser.add_argument("--network", type=str, default="ncsnpp", 
+    parser.add_argument("--network", type=str, default="ncsnpp",
                         choices=["scorenet", "unet", "ncsnpp", "ncsnpp_simple"],
                         help="Network architecture: scorenet (no downsampling), unet (with downsampling), "
                              "ncsnpp (full NCSN++), ncsnpp_simple (lightweight NCSN++)")
+    parser.add_argument("--num_ckpts", type=int, default=100,
+                        help="Number of log-spaced checkpoints to save")
+    parser.add_argument("--gpu_data", action="store_true",
+                        help="Load all training data onto GPU once (avoids per-epoch H2D transfer)")
+    parser.add_argument("--output_suffix", type=str, default="",
+                        help="Suffix appended to output directory name")
     args = parser.parse_args()
 
     # Default data path for 3D lattice
@@ -63,7 +86,8 @@ def main():
     data_module = FieldDataModule3D(
         data_path=args.data_path,
         batch_size=args.batch_size,
-        normalize=True
+        normalize=True,
+        device=args.device if args.gpu_data else None,
     )
     data_module.setup()  # Compute cfgs_min, cfgs_max
 
@@ -103,25 +127,18 @@ def main():
     print(f"Training 3D phi4 model with L={args.L}, k={args.k}, l={args.l}")
 
     # Output directory for logs and models
-    output_dir = f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}"
+    output_dir = f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
+    os.makedirs(f"{output_dir}/models", exist_ok=True)
     print(f"Output directory: {output_dir}/")
 
-    # Callbacks
-    checkpoint_callback = ModelCheckpoint(
+    # Log-scale checkpoint callback
+    checkpoint_log = LogScaleCheckpoint(
         dirpath=f"{output_dir}/models",
-        filename="{epoch:02d}-{train_loss_epoch:.4f}",
-        monitor="train_loss_epoch",
-        mode="min",
-        save_top_k=2,
+        max_epochs=args.epochs,
+        num_checkpoints=args.num_ckpts,
     )
-    # Save checkpoint every 5 epochs
-    periodic_checkpoint = ModelCheckpoint(
-        dirpath=f"{output_dir}/models",
-        filename="epoch={epoch:04d}",
-        every_n_epochs=50,
-        # every_n_train_steps=5,
-        save_top_k=-1,  # Keep all periodic checkpoints
-    )
+    print(f"Log-scale checkpoints ({len(checkpoint_log.save_epochs)} total): "
+          f"{sorted(checkpoint_log.save_epochs)[:5]} ... {sorted(checkpoint_log.save_epochs)[-5:]}")
 
     # Trainer (with gradient clipping to prevent explosion)
     device_id = int(args.device.split(":")[-1]) if ":" in args.device else 0
@@ -129,7 +146,7 @@ def main():
         max_epochs=args.epochs,
         accelerator="gpu",
         devices=[device_id],
-        callbacks=[checkpoint_callback, periodic_checkpoint],
+        callbacks=[checkpoint_log],
         default_root_dir=output_dir,
         precision="bf16-mixed",
         # gradient_clip_val=1.0,
@@ -137,9 +154,8 @@ def main():
     )
 
     # Train (optionally resume from checkpoint)
-    trainer.fit(model, data_module)
-    # trainer.fit(model, data_module, ckpt_path="/home/tyy/DM/DMasSQ-main/3Dphi4/phi4_3d_L64_k0.5_l2.5_unet/models/epoch=301-train_loss_epoch=12164.2393.ckpt")
-    print(f"\nTraining complete! Best model saved at: {checkpoint_callback.best_model_path}")
+    trainer.fit(model, data_module, ckpt_path=args.ckpt_path)
+    print(f"\nTraining complete!")
 
 
 if __name__ == "__main__":

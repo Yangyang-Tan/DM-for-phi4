@@ -73,14 +73,20 @@ struct MomentumBins{D}
 end
 
 """
-    compute_momentum_bins(spatial_size; max_diagonality=0.51)
+    compute_momentum_bins(spatial_size; max_diagonality=0.51, direction=:radial)
 
-Precompute radial momentum bins for a lattice of given `spatial_size`.
+Precompute momentum bins for a lattice of given `spatial_size`.
 Assumes a cubic lattice (L = spatial_size[1]).
-Modes with diagonality > `max_diagonality` are filtered out.
+
+`direction` controls which momentum modes are selected:
+- `:radial`   — all modes with diagonality ≤ `max_diagonality`, radially averaged (default)
+- `:x`        — axial modes along x: (nx, 0, …), k = |k̂_x|
+- `:y`        — axial modes along y: (0, ny, …), k = |k̂_y|
+- `:diagonal` — diagonal modes: (n, n, …),       k = √(D·k̂²(n))
 """
 function compute_momentum_bins(spatial_size::NTuple{D,Int};
-        max_diagonality::Float64=0.51) where D
+        max_diagonality::Float64=0.51,
+        direction::Symbol=:radial) where D
     L = spatial_size[1]
     k_sq_list  = Float64[]
     idx_list   = CartesianIndex{D}[]
@@ -91,8 +97,21 @@ function compute_momentum_bins(spatial_size::NTuple{D,Int};
             n > L ÷ 2 ? n - L : n
         end, D)
 
-        diag = diagonality(ns, L)
-        diag > max_diagonality && continue
+        if direction == :x
+            # Only modes along x-axis: all other components = 0
+            all(ns[d] == 0 for d in 2:D) || continue
+        elseif direction == :y
+            # Only modes along y-axis: all other components = 0
+            D >= 2 || error("direction=:y requires D ≥ 2")
+            ns[1] == 0 || continue
+            all(ns[d] == 0 for d in 3:D) || continue
+        elseif direction == :diagonal
+            # Only diagonal modes: all components equal
+            all(ns[d] == ns[1] for d in 2:D) || continue
+        else  # :radial
+            diag = diagonality(ns, L)
+            diag > max_diagonality && continue
+        end
 
         push!(k_sq_list, lattice_k_sq(ns, L))
         push!(idx_list, idx)
@@ -133,12 +152,15 @@ function radial_average(G_k::AbstractArray, bins::MomentumBins)
 end
 
 """
-    radial_average(G_k; max_diagonality=0.51)
+    radial_average(G_k; max_diagonality=0.51, direction=:radial)
 
 Convenience: compute bins on the fly and return `(k_vals, G_avg)`.
 """
-function radial_average(G_k::AbstractArray{T}; max_diagonality::Float64=0.51) where T
-    bins = compute_momentum_bins(size(G_k); max_diagonality=max_diagonality)
+function radial_average(G_k::AbstractArray{T};
+        max_diagonality::Float64=0.51,
+        direction::Symbol=:radial) where T
+    bins = compute_momentum_bins(size(G_k); max_diagonality=max_diagonality,
+                                 direction=direction)
     return bins.k_vals, radial_average(G_k, bins)
 end
 
@@ -177,19 +199,20 @@ end
 
 """
     propagator_radial_bootstrap(cfgs::AbstractArray;
-        n_boot=1000, subtract_mean=true, max_diagonality=0.51, seed=nothing)
+        n_boot=1000, subtract_mean=true, max_diagonality=0.51,
+        direction=:radial, seed=nothing)
 
-Radially-averaged momentum propagator with bootstrap error bars.
+Momentum propagator with bootstrap error bars.
 Returns `(k_vals, G_mean, G_err)`.
 
-Steps:
-1. For each config, compute |φ̃(k)|²/V and radially average → per-config, per-bin values.
-2. Bootstrap the mean of each radial bin using Bootstrap.jl.
+`direction`: `:radial` (default), `:x`, `:y`, or `:diagonal`.
+See `compute_momentum_bins` for details.
 """
 function propagator_radial_bootstrap(cfgs::AbstractArray{T};
         n_boot::Int            = 1000,
         subtract_mean::Bool    = true,
         max_diagonality::Float64 = 0.51,
+        direction::Symbol      = :radial,
         seed::Union{Int,Nothing} = nothing,
     ) where T
 
@@ -199,7 +222,8 @@ function propagator_radial_bootstrap(cfgs::AbstractArray{T};
     V  = prod(spatial)
     N  = size(cfgs, nd)
 
-    bins = compute_momentum_bins(spatial; max_diagonality=max_diagonality)
+    bins = compute_momentum_bins(spatial; max_diagonality=max_diagonality,
+                                 direction=direction)
     nb   = length(bins.k_vals)
 
     G_rad = zeros(Float64, nb, N)
@@ -287,4 +311,102 @@ function momentum_propagator_bootstrap(cfgs::AbstractArray{T};
     G_err = dropdims(std(boot_sums; dims=D + 1); dims=D + 1)
 
     return G_mean, G_err
+end
+
+# ╔═══════════════════════════════════════════════════════════════════════════╗
+# ║  Propagator-mismatch diagnostics (Gaussian-level)                        ║
+# ║                                                                           ║
+# ║  Given radially-averaged propagators G_train(k), G_dm(k) and their        ║
+# ║  bootstrap errors, compute three complementary diagnostics:               ║
+# ║    (1) per-mode Gaussian KL    D_k = ½(r - 1 - log r), r = G_t / G_dm    ║
+# ║    (2) statistical z-score     z_k = (G_dm - G_t) / √(σ_t² + σ_dm²)     ║
+# ║    (3) phase-space weighted Δ   w_k = k^(D-1) (G_dm - G_t)              ║
+# ╚═══════════════════════════════════════════════════════════════════════════╝
+
+"""
+    per_mode_kl(G_dm, G_train; G_dm_err=nothing, G_train_err=nothing, eps=1e-30)
+
+Per-mode Gaussian KL  D_k = ½ (r - 1 - log r)  with  r = G_train / G_dm,
+which equals the KL divergence D_KL(p_train ‖ p_dm) between two zero-mean
+Gaussian fields that share the propagators as covariances (diagonal in
+momentum due to translation invariance).
+
+If bootstrap errors are supplied, a linearized 1σ uncertainty on D_k is
+also returned via Gaussian error propagation:
+    ∂D/∂G_t  = (1/G_dm - 1/G_t) / 2
+    ∂D/∂G_dm = (1/G_dm - G_t/G_dm²) / 2
+Near perfect match (r≈1) the linearization degrades — a noise-floor
+estimator  D_floor ≈ (σ_t² + σ_dm²) / (4 G²)  is also returned so the
+user can judge statistical significance.
+
+Returns `(D_k, D_k_err, D_floor)` (`D_k_err` and `D_floor` are `nothing`
+if errors were not supplied).
+"""
+function per_mode_kl(G_dm::AbstractVector, G_train::AbstractVector;
+        G_dm_err::Union{AbstractVector,Nothing}    = nothing,
+        G_train_err::Union{AbstractVector,Nothing} = nothing,
+        eps::Float64 = 1e-30,
+    )
+    @assert length(G_dm) == length(G_train)
+    Gd = max.(G_dm,    eps)
+    Gt = max.(G_train, eps)
+    r  = Gt ./ Gd
+    D  = 0.5 .* (r .- 1 .- log.(r))
+
+    if G_dm_err === nothing || G_train_err === nothing
+        return D, nothing, nothing
+    end
+
+    dD_dGt  = 0.5 .* (1 ./ Gd .- 1 ./ Gt)
+    dD_dGd  = 0.5 .* (1 ./ Gd .- Gt ./ Gd.^2)
+    D_err   = sqrt.(dD_dGt.^2 .* G_train_err.^2 .+ dD_dGd.^2 .* G_dm_err.^2)
+
+    Gmean   = 0.5 .* (Gd .+ Gt)
+    D_floor = (G_train_err.^2 .+ G_dm_err.^2) ./ (4 .* Gmean.^2)
+
+    return D, D_err, D_floor
+end
+
+"""
+    propagator_zscore(G_dm, G_train, G_dm_err, G_train_err)
+
+Statistical z-score per k-bin,
+    z_k = (G_dm(k) - G_train(k)) / √(σ_dm(k)² + σ_train(k)²),
+measuring whether the DM/training propagator discrepancy is significant
+compared to the bootstrap uncertainties. |z_k| ≲ 2 ⇒ consistent at 2σ.
+"""
+function propagator_zscore(G_dm::AbstractVector, G_train::AbstractVector,
+                           G_dm_err::AbstractVector, G_train_err::AbstractVector)
+    @assert length(G_dm) == length(G_train) == length(G_dm_err) == length(G_train_err)
+    denom = sqrt.(G_dm_err.^2 .+ G_train_err.^2)
+    denom = max.(denom, 1e-30)
+    return (G_dm .- G_train) ./ denom
+end
+
+"""
+    phase_space_weighted_delta(k_vals, G_dm, G_train; D::Int,
+                               G_dm_err=nothing, G_train_err=nothing)
+
+Phase-space weighted propagator difference
+    w_k = k^(D-1) · (G_dm(k) - G_train(k))
+so that  ∫ dk · w_k  is proportional to the mismatch in the spatial-variance
+contribution ⟨φ²⟩ = ∫ d^Dk/(2π)^D · G(k). The prefactor k^(D-1) accounts
+for the radial phase space of a D-dimensional momentum integral, making
+UV and IR contributions to the total field variance directly comparable.
+
+Returns `(w_k, w_k_err)`; `w_k_err` is `nothing` if errors are not provided.
+"""
+function phase_space_weighted_delta(k_vals::AbstractVector,
+                                    G_dm::AbstractVector,
+                                    G_train::AbstractVector;
+                                    D::Int,
+                                    G_dm_err::Union{AbstractVector,Nothing}    = nothing,
+                                    G_train_err::Union{AbstractVector,Nothing} = nothing,
+    )
+    @assert length(k_vals) == length(G_dm) == length(G_train)
+    weight = k_vals.^(D - 1)
+    w      = weight .* (G_dm .- G_train)
+    w_err  = (G_dm_err === nothing || G_train_err === nothing) ? nothing :
+             weight .* sqrt.(G_dm_err.^2 .+ G_train_err.^2)
+    return w, w_err
 end

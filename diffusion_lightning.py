@@ -85,6 +85,20 @@ class DiffusionModel(pl.LightningModule):
         checkpoint['ema_state_dict'] = self.ema.state_dict()
 
     def on_load_checkpoint(self, checkpoint):
+        # Handle torch.compile's _orig_mod. prefix mismatch:
+        # adapt checkpoint keys to match current model (compiled or not)
+        sd = checkpoint.get('state_dict', {})
+        model_keys = set(self.state_dict().keys())
+        ckpt_has_orig = any('._orig_mod.' in k for k in sd)
+        model_has_orig = any('._orig_mod.' in k for k in model_keys)
+
+        if ckpt_has_orig and not model_has_orig:
+            sd = {k.replace('._orig_mod.', '.'): v for k, v in sd.items()}
+        elif not ckpt_has_orig and model_has_orig:
+            sd = {k.replace('score_model.', 'score_model._orig_mod.', 1): v
+                  for k, v in sd.items()}
+        checkpoint['state_dict'] = sd
+
         if 'ema_state_dict' in checkpoint:
             self.ema.load_state_dict(checkpoint['ema_state_dict'])
 
@@ -129,31 +143,170 @@ class DiffusionModel(pl.LightningModule):
         """
         self.eval()
         device = self.device
-        # with self.ema.average_parameters():
-        with torch.no_grad():
+        with self.ema.average_parameters(), torch.autocast(device.type, dtype=torch.bfloat16):
             time_steps = self._build_time_steps(num_steps, eps, schedule, device)
+            dt_all = time_steps[:-1] - time_steps[1:]
 
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
-            # torch.manual_seed(1234)
             x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            batch_t = torch.empty(num_samples, device=device)
 
             for i in tqdm(range(num_steps), desc="Sampling (EM)"):
-                time_step = time_steps[i]
-                dt = time_steps[i] - time_steps[i + 1]
-                batch_t = torch.ones(num_samples, device=device) * time_step
-                g = self.diffusion_coeff_fn(time_step)
+                batch_t.fill_(time_steps[i].item())
+                g = self.diffusion_coeff_fn(time_steps[i])
+                dt = dt_all[i]
                 mean_x = x + g**2 * self(x, batch_t) * dt
                 x = mean_x + g * torch.sqrt(dt) * torch.randn_like(x)
         return mean_x
+
+    def _sigma_to_t(self, sigma_val):
+        """Invert marginal_prob_std: given σ, find t such that σ(t) = sigma_val.
+
+        σ²(t) = (Σ^(2t) - 1) / (2·ln Σ)  where Σ = self.sigma
+        ⟹ t = ln(2·ln(Σ)·σ² + 1) / (2·ln Σ)
+        """
+        log_sigma = np.log(self.sigma)
+        return np.log(2 * log_sigma * sigma_val**2 + 1) / (2 * log_sigma)
+
+    @torch.no_grad()
+    def sample_ode(self, num_samples=64, num_steps=500, eps=1e-5,
+                   schedule='log', method='dpm2'):
+        """Probability flow ODE sampler via DPM-Solver (deterministic).
+
+        Uses the change of variable λ = -log σ(t) to eliminate stiffness.
+        The exact solution for VE-SDE (α=1) is:
+            x_t = x_s - ε_θ · (σ_s - σ_t)
+        where ε_θ = -σ(t)·score(x, t) is the noise prediction.
+
+        Args:
+            num_samples: Number of samples to generate.
+            num_steps:   Number of ODE steps.
+            eps:         End time (>0, avoids t=0 singularity).
+            schedule:    Time step schedule ('linear', 'log', etc.).
+            method:      'dpm1' (1st order, 1 NFE/step),
+                         'dpm2' (2nd order midpoint, 2 NFE/step, recommended),
+                         'dpm3' (3rd order, 3 NFE/step),
+                         or 'rk45' (adaptive scipy solver).
+        """
+        if method == 'rk45':
+            return self._sample_ode_rk45(num_samples, eps)
+
+        self.eval()
+        device = self.device
+        with self.ema.average_parameters():
+            time_steps = self._build_time_steps(num_steps, eps, schedule, device)
+
+            # Precompute σ(t) for all time steps
+            sigma_steps = torch.stack(
+                [self.marginal_prob_std_fn(t) for t in time_steps])
+
+            init_std = sigma_steps[0]
+            x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            batch_t = torch.empty(num_samples, device=device)
+
+            def noise_pred(x, t_val):
+                """ε_θ(x, t) = -σ(t) · score(x, t)"""
+                batch_t.fill_(t_val)
+                score = self(x, batch_t)
+                sigma_t = self.marginal_prob_std_fn(
+                    torch.tensor(t_val, device=device))
+                return -sigma_t * score
+
+            for i in tqdm(range(num_steps), desc=f"Sampling (DPM-{method[-1]})"):
+                sigma_s = sigma_steps[i]
+                sigma_next = sigma_steps[i + 1]
+                t_s = time_steps[i].item()
+
+                eps_s = noise_pred(x, t_s)
+
+                if method == 'dpm1':
+                    # DPM-Solver-1: x_next = x + (σ_next - σ_s) · ε_θ
+                    x = x + (sigma_next - sigma_s) * eps_s
+
+                elif method == 'dpm2':
+                    # DPM-Solver-2 (midpoint): 2nd order, 2 NFE/step
+                    # Midpoint in σ-space (geometric mean)
+                    sigma_mid = torch.sqrt(sigma_s * sigma_next)
+                    t_mid = self._sigma_to_t(sigma_mid.item())
+
+                    # Half step to midpoint
+                    x_mid = x + (sigma_mid - sigma_s) * eps_s
+
+                    # Evaluate at midpoint
+                    eps_mid = noise_pred(x_mid, t_mid)
+
+                    # Full step using midpoint noise prediction
+                    x = x + (sigma_next - sigma_s) * eps_mid
+
+                elif method == 'dpm3':
+                    # DPM-Solver-3: 3rd order, 3 NFE/step
+                    # Two intermediate points at 1/3 and 2/3
+                    sigma_s_val = sigma_s.item()
+                    sigma_next_val = sigma_next.item()
+                    sigma_1 = sigma_s_val ** (2/3) * sigma_next_val ** (1/3)
+                    sigma_2 = sigma_s_val ** (1/3) * sigma_next_val ** (2/3)
+                    t_1 = self._sigma_to_t(sigma_1)
+                    t_2 = self._sigma_to_t(sigma_2)
+
+                    # Step to 1/3 point
+                    x_1 = x + (sigma_1 - sigma_s_val) * eps_s
+                    eps_1 = noise_pred(x_1, t_1)
+
+                    # Step to 2/3 point using corrected estimate
+                    x_2 = x + (sigma_2 - sigma_s_val) * (2 * eps_1 - eps_s)
+                    eps_2 = noise_pred(x_2, t_2)
+
+                    # Full step using Simpson-like combination
+                    x = x + (sigma_next_val - sigma_s_val) * (
+                        eps_s / 6 + 2 * eps_1 / 3 + eps_2 / 6)
+
+        return x
+
+    @torch.no_grad()
+    def _sample_ode_rk45(self, num_samples, eps=1e-5):
+        """Probability flow ODE with scipy adaptive RK45 solver.
+
+        Most accurate but slow (CPU-GPU transfer at each step).
+        Useful as ground-truth reference for validating other methods.
+        """
+        from scipy import integrate
+
+        self.eval()
+        device = self.device
+        shape = (num_samples, 1, self.L, self.L)
+
+        with self.ema.average_parameters():
+            init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
+            x0 = (torch.randn(*shape, device=device) * init_std).cpu().numpy().flatten()
+
+            def ode_func(t, x_flat):
+                x = torch.tensor(x_flat, dtype=torch.float32, device=device).reshape(shape)
+                batch_t = torch.ones(num_samples, device=device) * t
+                g = self.diffusion_coeff_fn(torch.tensor(t, device=device))
+                score = self(x, batch_t)
+                drift = 0.5 * g**2 * score
+                return drift.cpu().numpy().flatten()
+
+            print(f"Running RK45 ODE solver (t: 1.0 → {eps})...")
+            solution = integrate.solve_ivp(
+                ode_func, (1.0, eps), x0,
+                method='RK45', rtol=1e-5, atol=1e-5,
+            )
+            print(f"  RK45 finished: {solution.nfev} function evaluations")
+
+            x = torch.tensor(
+                solution.y[:, -1], dtype=torch.float32, device=device
+            ).reshape(shape)
+
+        return x
 
     @torch.no_grad()
     def sample2(self, num_samples=64, num_steps=500, eps=1e-3):
         """Euler-Maruyama sampler."""
         self.eval()
         device = self.device
-        
-        # with self.ema.average_parameters():
-        with torch.no_grad():
+
+        with self.ema.average_parameters():
             time_steps = torch.linspace(1.0, eps, num_steps, device=device)
             x_all = torch.zeros(num_steps, num_samples, 1, self.L, self.L, device=device)
             torch.manual_seed(1234)
@@ -177,29 +330,29 @@ class DiffusionModel(pl.LightningModule):
         """
         self.eval()
         device = self.device
-        
-        # with self.ema.average_parameters():
-        with torch.no_grad():
+
+        with self.ema.average_parameters(), torch.autocast(device.type, dtype=torch.bfloat16):
             time_steps = self._build_time_steps(num_steps, eps, schedule, device)
-            
+            dt_all = time_steps[:-1] - time_steps[1:]
+
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
             x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            batch_t = torch.empty(num_samples, device=device)
+            noise_norm = np.sqrt(np.prod(x.shape[1:]))
 
             for i in tqdm(range(num_steps), desc="Sampling (PC)"):
-                time_step = time_steps[i]
-                dt = time_steps[i] - time_steps[i + 1]
-                batch_t = torch.ones(num_samples, device=device) * time_step
-                
+                batch_t.fill_(time_steps[i].item())
+                dt = dt_all[i]
+
                 # Corrector (Langevin MCMC)
                 for _ in range(corrector_steps):
                     grad = self(x, batch_t)
                     grad_norm = torch.norm(grad.reshape(grad.shape[0], -1), dim=-1).mean()
-                    noise_norm = np.sqrt(np.prod(x.shape[1:]))
                     langevin_step_size = 0.02*2 * (snr * noise_norm / grad_norm) ** 2
                     x = x + langevin_step_size * grad + torch.sqrt(2 * langevin_step_size) * torch.randn_like(x)
 
                 # Predictor (Euler-Maruyama)
-                g = self.diffusion_coeff_fn(time_step)
+                g = self.diffusion_coeff_fn(time_steps[i])
                 x_mean = x + g**2 * self(x, batch_t) * dt
                 x = x_mean + g * torch.sqrt(dt) * torch.randn_like(x)
 
@@ -233,18 +386,18 @@ class DiffusionModel(pl.LightningModule):
         if mala_step_size is None:
             mala_step_size = 1.0 / (self.L ** 2)
 
-        # with self.ema.average_parameters():
-        with torch.no_grad():
+        with self.ema.average_parameters(), torch.autocast(device.type, dtype=torch.bfloat16):
             # --- Phase 1: EM reverse SDE ---
             time_steps = self._build_time_steps(num_steps, eps, schedule, device)
+            dt_all = time_steps[:-1] - time_steps[1:]
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
             x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            batch_t = torch.empty(num_samples, device=device)
 
             for i in tqdm(range(num_steps), desc="Phase 1  EM"):
-                time_step = time_steps[i]
-                dt = time_steps[i] - time_steps[i + 1]
-                batch_t = torch.ones(num_samples, device=device) * time_step
-                g = self.diffusion_coeff_fn(time_step)
+                batch_t.fill_(time_steps[i].item())
+                dt = dt_all[i]
+                g = self.diffusion_coeff_fn(time_steps[i])
                 mean_x = x + g**2 * self(x, batch_t) * dt
                 x = mean_x + g * torch.sqrt(dt) * torch.randn_like(x)
             x = mean_x

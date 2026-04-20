@@ -83,7 +83,7 @@ class ScoreNetUNet(nn.Module):
         # output_padding depends on image size to match encoder feature map sizes
         # For 28x28: h4=2x2 → h3=5x5, no output_padding needed
         # For 64x64: h4=6x6 → h3=14x14, output_padding=1 needed
-        tconv4_output_padding = 1 if image_size >= 64 else 0
+        tconv4_output_padding = 1 if image_size >= 32 else 0
         
         self.tconv4 = nn.ConvTranspose2d(channels[3], channels[2], 3, stride=2, bias=False, output_padding=tconv4_output_padding)
         self.dense5 = Dense(embed_dim, channels[2])
@@ -349,30 +349,32 @@ class ScoreNet(nn.Module):
 
 class ResnetBlock2D(nn.Module):
     """ResNet block with additive time conditioning (2D).
-    
+
     Note: skip_conv exists for channel projection but is NOT used for residual
     connection (residual was found to cause training instability).
-    
+
     Args:
         in_ch: Input channels.
         out_ch: Output channels.
         embed_dim: Time embedding dimension.
+        periodic: Use circular padding (True) or zero padding (False).
     """
-    
-    def __init__(self, in_ch: int, out_ch: int, embed_dim: int):
+
+    def __init__(self, in_ch: int, out_ch: int, embed_dim: int, periodic: bool = True):
         super().__init__()
-        
-        self.conv1 = nn.Conv2d(in_ch, out_ch, 3, padding=1, padding_mode="circular", bias=False)
+        pad_mode = "circular" if periodic else "zeros"
+
+        self.conv1 = nn.Conv2d(in_ch, out_ch, 3, padding=1, padding_mode=pad_mode, bias=False)
         self.norm1 = nn.GroupNorm(out_ch // 8, out_ch)
-        
+
         self.temb_proj = nn.Linear(embed_dim, out_ch)
-        
-        self.conv2 = nn.Conv2d(out_ch, out_ch, 3, padding=1, padding_mode="circular", bias=False)
+
+        self.conv2 = nn.Conv2d(out_ch, out_ch, 3, padding=1, padding_mode=pad_mode, bias=False)
         self.norm2 = nn.GroupNorm(out_ch // 8, out_ch)
-        
+
         if in_ch != out_ch:
             self.skip_conv = nn.Conv2d(in_ch, out_ch, 1, bias=False)
-        
+
         self.act = nn.SiLU()
     
     def forward(self, x: torch.Tensor, temb: torch.Tensor) -> torch.Tensor:
@@ -416,69 +418,71 @@ class AttnBlock2D(nn.Module):
 
 class NCSNpp2D(nn.Module):
     """NCSN++ style 2D U-Net with ResNet blocks and time conditioning.
-    
+
     2D adaptation of NCSNpp3D. Based on "Improved Techniques for Training
-    Score-Based Generative Models" by Yang Song et al. Uses periodic boundary
-    conditions (circular padding) for lattice field theory.
-    
+    Score-Based Generative Models" by Yang Song et al.
+
     Args:
         marginal_prob_std_fn: Function that returns std at time t.
         channels: Channel sizes for each level [16, 32, 64, 128].
         embed_dim: Time embedding dimension.
         use_attention: Whether to use attention at bottleneck.
+        periodic: Use circular padding for lattice field theory (True)
+                  or zero padding for natural images (False).
     """
 
-    def __init__(self, marginal_prob_std_fn, channels=[16, 32, 64, 128], 
-                 embed_dim=256, use_attention=False):
+    def __init__(self, marginal_prob_std_fn, channels=[16, 32, 64, 128],
+                 embed_dim=256, use_attention=False, periodic=True):
         super().__init__()
         self.marginal_prob_std = marginal_prob_std_fn
-        
+        pad_mode = "circular" if periodic else "zeros"
+
         self.embed = nn.Sequential(
             GaussianFourierProjection(embed_dim=embed_dim),
             nn.Linear(embed_dim, embed_dim)
         )
 
         # Encoder with ResNet blocks
-        self.conv_in = nn.Conv2d(1, channels[0], 3, padding=1, padding_mode="circular")
-        self.res1a = ResnetBlock2D(channels[0], channels[0], embed_dim)
-        self.res1b = ResnetBlock2D(channels[0], channels[0], embed_dim)
-        self.down1 = nn.Conv2d(channels[0], channels[0], 3, stride=2, padding=1, padding_mode="circular")
+        self.conv_in = nn.Conv2d(1, channels[0], 3, padding=1, padding_mode=pad_mode)
+        self.res1a = ResnetBlock2D(channels[0], channels[0], embed_dim, periodic=periodic)
+        self.res1b = ResnetBlock2D(channels[0], channels[0], embed_dim, periodic=periodic)
+        self.down1 = nn.Conv2d(channels[0], channels[0], 3, stride=2, padding=1, padding_mode=pad_mode)
 
-        self.res2a = ResnetBlock2D(channels[0], channels[1], embed_dim)
-        self.res2b = ResnetBlock2D(channels[1], channels[1], embed_dim)
-        self.down2 = nn.Conv2d(channels[1], channels[1], 3, stride=2, padding=1, padding_mode="circular")
+        self.res2a = ResnetBlock2D(channels[0], channels[1], embed_dim, periodic=periodic)
+        self.res2b = ResnetBlock2D(channels[1], channels[1], embed_dim, periodic=periodic)
+        self.down2 = nn.Conv2d(channels[1], channels[1], 3, stride=2, padding=1, padding_mode=pad_mode)
 
-        self.res3a = ResnetBlock2D(channels[1], channels[2], embed_dim)
-        self.res3b = ResnetBlock2D(channels[2], channels[2], embed_dim)
-        self.down3 = nn.Conv2d(channels[2], channels[2], 3, stride=2, padding=1, padding_mode="circular")
+        self.res3a = ResnetBlock2D(channels[1], channels[2], embed_dim, periodic=periodic)
+        self.res3b = ResnetBlock2D(channels[2], channels[2], embed_dim, periodic=periodic)
+        self.down3 = nn.Conv2d(channels[2], channels[2], 3, stride=2, padding=1, padding_mode=pad_mode)
 
-        self.res4a = ResnetBlock2D(channels[2], channels[3], embed_dim)
-        self.res4b = ResnetBlock2D(channels[3], channels[3], embed_dim)
+        self.res4a = ResnetBlock2D(channels[2], channels[3], embed_dim, periodic=periodic)
+        self.res4b = ResnetBlock2D(channels[3], channels[3], embed_dim, periodic=periodic)
 
         # Middle
-        self.mid1 = ResnetBlock2D(channels[3], channels[3], embed_dim)
+        self.mid1 = ResnetBlock2D(channels[3], channels[3], embed_dim, periodic=periodic)
         self.mid_attn = AttnBlock2D(channels[3]) if use_attention else nn.Identity()
-        self.mid2 = ResnetBlock2D(channels[3], channels[3], embed_dim)
+        self.mid2 = ResnetBlock2D(channels[3], channels[3], embed_dim, periodic=periodic)
 
         # Decoder with skip connections
-        self.tres4a = ResnetBlock2D(channels[3] + channels[3], channels[3], embed_dim)
-        self.tres4b = ResnetBlock2D(channels[3] + channels[3], channels[2], embed_dim)
-        self.up3 = nn.Conv2d(channels[2], channels[2], 3, padding=1, padding_mode="circular")
+        self.tres4a = ResnetBlock2D(channels[3] + channels[3], channels[3], embed_dim, periodic=periodic)
+        self.tres4b = ResnetBlock2D(channels[3] + channels[3], channels[2], embed_dim, periodic=periodic)
+        self.up3 = nn.Conv2d(channels[2], channels[2], 3, padding=1, padding_mode=pad_mode)
 
-        self.tres3a = ResnetBlock2D(channels[2] + channels[2], channels[2], embed_dim)
-        self.tres3b = ResnetBlock2D(channels[2] + channels[2], channels[1], embed_dim)
-        self.up2 = nn.Conv2d(channels[1], channels[1], 3, padding=1, padding_mode="circular")
+        self.tres3a = ResnetBlock2D(channels[2] + channels[2], channels[2], embed_dim, periodic=periodic)
+        self.tres3b = ResnetBlock2D(channels[2] + channels[2], channels[1], embed_dim, periodic=periodic)
+        self.up2 = nn.Conv2d(channels[1], channels[1], 3, padding=1, padding_mode=pad_mode)
 
-        self.tres2a = ResnetBlock2D(channels[1] + channels[1], channels[1], embed_dim)
-        self.tres2b = ResnetBlock2D(channels[1] + channels[1], channels[0], embed_dim)
-        self.up1 = nn.Conv2d(channels[0], channels[0], 3, padding=1, padding_mode="circular")
+        self.tres2a = ResnetBlock2D(channels[1] + channels[1], channels[1], embed_dim, periodic=periodic)
+        self.tres2b = ResnetBlock2D(channels[1] + channels[1], channels[0], embed_dim, periodic=periodic)
+        self.up1 = nn.Conv2d(channels[0], channels[0], 3, padding=1, padding_mode=pad_mode)
 
-        self.tres1a = ResnetBlock2D(channels[0] + channels[0], channels[0], embed_dim)
-        self.tres1b = ResnetBlock2D(channels[0] + channels[0], channels[0], embed_dim)
+        self.tres1a = ResnetBlock2D(channels[0] + channels[0], channels[0], embed_dim, periodic=periodic)
+        self.tres1b = ResnetBlock2D(channels[0] + channels[0], channels[0], embed_dim, periodic=periodic)
 
         # Output
         self.norm_out = nn.GroupNorm(channels[0] // 8, channels[0])
-        self.conv_out = nn.Conv2d(channels[0], 1, 3, padding=1, padding_mode="circular")
+        self.conv_out = nn.Conv2d(channels[0], 1, 3, padding=1, padding_mode=pad_mode)
 
     def forward(self, x, t):
         temb = F.silu(self.embed(t))

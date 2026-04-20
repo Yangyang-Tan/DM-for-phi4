@@ -14,26 +14,40 @@ from torch.utils.data import DataLoader, TensorDataset
 import h5py
 
 
+class GPUDataLoader3D:
+    """Yields random batches from a GPU-resident tensor — zero host→device transfer."""
+    def __init__(self, data, labels, batch_size):
+        self.data = data; self.labels = labels; self.batch_size = batch_size
+        self.n = len(data)
+    def __iter__(self):
+        idx = torch.randperm(self.n, device=self.data.device)
+        for s in range(0, self.n, self.batch_size):
+            sel = idx[s:s+self.batch_size]
+            yield self.data[sel], self.labels[sel]
+    def __len__(self):
+        return (self.n + self.batch_size - 1) // self.batch_size
+
+
 class FieldDataModule3D(pl.LightningDataModule):
     """PyTorch Lightning DataModule for 3D field configurations.
-    
-    Args:
-        data_path: Path to the data file (HDF5/JLD2 format with 'cfgs' key).
-        batch_size: Batch size for training.
-        normalize: Whether to normalize the data to [-1, 1].
-        num_workers: Number of DataLoader workers.
+
+    If `device` is given, the entire dataset is pinned on that GPU at setup()
+    and the train_dataloader yields batches by slicing GPU tensors — no
+    per-epoch host→device transfer.
     """
 
-    def __init__(self, data_path, batch_size=64, normalize=True, num_workers=4):
+    def __init__(self, data_path, batch_size=64, normalize=True, num_workers=4, device=None):
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
         self.normalize = normalize
         self.num_workers = num_workers
+        self.device = device
 
         self.cfgs_min = None
         self.cfgs_max = None
-        
+        self.data_on_gpu = None
+
         # Path to save normalization parameters (next to data file)
         self.norm_cache_path = data_path + ".norm.json"
 
@@ -100,13 +114,19 @@ class FieldDataModule3D(pl.LightningDataModule):
         print(f"Tensor shape: {configs.shape}")
         print(f"Memory usage: {configs.element_size() * configs.nelement() / 1e9:.2f} GB")
 
+        if self.device:
+            self.data_on_gpu = configs.to(self.device)
+            print(f"Data loaded to {self.device} ({self.data_on_gpu.nbytes/1e9:.2f} GB)")
+
         # Training data
         self.train_data = TensorDataset(configs, configs)
 
     def train_dataloader(self):
+        if self.device:
+            return GPUDataLoader3D(self.data_on_gpu, self.data_on_gpu, self.batch_size)
         return DataLoader(
-            self.train_data, 
-            batch_size=self.batch_size, 
+            self.train_data,
+            batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
             pin_memory=True,

@@ -75,16 +75,23 @@ class GPUDataLoader:
 
 
 class FieldDataModule(pl.LightningDataModule):
-    """PyTorch Lightning DataModule for field configurations."""
+    """PyTorch Lightning DataModule for field configurations.
 
-    def __init__(self, data_path, batch_size=64, normalize=True):
+    If `device` is given, the entire dataset is pinned on that GPU at setup()
+    and the train_dataloader yields batches by slicing GPU tensors — no
+    per-epoch host→device transfer.
+    """
+
+    def __init__(self, data_path, batch_size=64, normalize=True, device=None):
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
         self.normalize = normalize
+        self.device = device
 
         self.cfgs_min = None
         self.cfgs_max = None
+        self.data_on_gpu = None
 
     def setup(self, stage=None):
         import h5py
@@ -100,10 +107,17 @@ class FieldDataModule(pl.LightningDataModule):
         # Convert to tensors
         configs = torch.from_numpy(cfgs).unsqueeze(1).float()
 
+        if self.device:
+            self.data_on_gpu = configs.to(self.device)
+            size_gb = self.data_on_gpu.nbytes / 1e9
+            print(f"Field data loaded to {self.device} ({size_gb:.2f} GB, shape={tuple(self.data_on_gpu.shape)})")
+
         # Training data (no separate test/validation split here)
         self.train_data = TensorDataset(configs, configs)
 
     def train_dataloader(self):
+        if self.device:
+            return GPUDataLoader(self.data_on_gpu, self.data_on_gpu, self.batch_size)
         return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
 
     def renorm(self, y):
