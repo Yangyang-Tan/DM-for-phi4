@@ -62,13 +62,19 @@ Typical sampling flags: `--method em --num_steps 2000 --schedule log --num_sampl
 ## Architecture
 
 - **SDE**: Variance-Exploding with `sigma^t`. Network output divided by `marginal_prob_std(t)`.
-- **`sigma` is NOT Song's `σ_max`.** This codebase parameterizes VE-SDE so `std(t=1) = sqrt((σ²−1)/(2·ln σ))`. Never set `sigma` equal to the max pairwise data distance — match `std(t=1)` to Song's `σ_max` criterion instead.
+- **`sigma` is NOT Song's `σ_max`.** This codebase parameterizes VE-SDE so `std(t=1) = sqrt((σ²−1)/(2·ln σ))`.
+- **Empirical sigma rule (L=128 ablation, validated 2026-04):** choose σ such that `σ_max ≈ 2·std(t=1)` — equivalently `std(t=1) ≈ σ_max/2` — where `σ_max` is the max pairwise Euclidean distance of training cfgs in **original (un-normalized) data space**. The normalized-space variant is off by ~5× and wrong. Verified at L=128: predicted σ matches the ablation winner to within ≤15% (k=0.2705 → predict 479, best 450; k=0.28 → predict 735, best 640). Reusable check: [2Dphi4/analysis/check_sigma_rule.py](2Dphi4/analysis/check_sigma_rule.py).
 
 ## GPU
 - CUDA mapping (PyTorch; differs from nvidia-smi):
   - `cuda:0,1` → RTX 4090 (24GB)
   - `cuda:2,3` → RTX 5090 (32GB)
   - `cuda:4,5` → RTX 2080 Ti (11GB)
+- **Device-selection policy:**
+  - Prefer `cuda:2` and `cuda:3` (5090, 32GB) for new jobs.
+  - Fall back to `cuda:0` and `cuda:1` (4090, 24GB) when 2/3 are busy.
+  - Avoid `cuda:4` and `cuda:5` (2080 Ti, 11GB) unless explicitly requested — small VRAM, much slower.
+  - **One job per GPU.** Before launching, check `nvidia-smi` and pick a GPU that is currently idle; never co-locate two compute jobs on the same device (OOM and contention are routine on this box).
 - `torch.compile` adds `_orig_mod.` prefix. Both `DiffusionModel` (2D) and `DiffusionModel3D` (3D) strip/add it in `on_load_checkpoint` — no manual fixup in sampling scripts.
 
 ## Checkpoints
