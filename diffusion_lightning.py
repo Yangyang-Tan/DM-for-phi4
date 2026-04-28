@@ -1,5 +1,7 @@
 """
 PyTorch Lightning diffusion model with EMA support.
+
+Supports both 2D and 3D data via the ``spatial_dims`` parameter (default 2).
 """
 
 import functools
@@ -22,10 +24,15 @@ def diffusion_coeff(t, sigma):
 
 
 class DiffusionModel(pl.LightningModule):
-    """Score-based diffusion model with EMA."""
+    """Score-based diffusion model with EMA.
+
+    Args:
+        spatial_dims: 2 for images / 2D fields ``(B,1,L,L)``,
+                      3 for volumes / 3D fields ``(B,1,L,L,L)``.
+    """
 
     def __init__(self, score_model, sigma=25.0, lr=1e-3, L=32, ema_decay=0.9999,
-                 ema_start_epoch=0, norm_min=None, norm_max=None):
+                 ema_start_epoch=0, norm_min=None, norm_max=None, spatial_dims=2):
         super().__init__()
         self.save_hyperparameters(ignore=['score_model'])
         self.sigma = sigma
@@ -34,10 +41,22 @@ class DiffusionModel(pl.LightningModule):
         self.ema_start_epoch = ema_start_epoch
         self.norm_min = norm_min
         self.norm_max = norm_max
+        self.spatial_dims = spatial_dims
         self.score_model = score_model
         self.marginal_prob_std_fn = functools.partial(marginal_prob_std, sigma=sigma)
         self.diffusion_coeff_fn = functools.partial(diffusion_coeff, sigma=sigma)
         self.ema = ExponentialMovingAverage(self.score_model.parameters(), decay=ema_decay)
+
+    # --- shape helpers (centralise the only places 2D/3D differ) ---
+    def _sample_shape(self, num_samples):
+        return (num_samples, 1) + (self.L,) * self.spatial_dims
+
+    def _bcast(self, t):
+        """Reshape a (B,)-tensor for broadcasting against (B, 1, L, ..., L)."""
+        return t.view((-1,) + (1,) * (self.spatial_dims + 1))
+
+    def _sum_axes(self):
+        return tuple(range(1, self.spatial_dims + 2))
 
     def forward(self, x, t):
         return self.score_model(x, t)
@@ -46,9 +65,9 @@ class DiffusionModel(pl.LightningModule):
         random_t = torch.rand(x.shape[0], device=x.device) * (1. - eps) + eps
         z = torch.randn_like(x)
         std = self.marginal_prob_std_fn(random_t)
-        perturbed_x = x + z * std[:, None, None, None]
+        perturbed_x = x + z * self._bcast(std)
         score = self(perturbed_x, random_t)
-        per_sample_loss = torch.sum((score * std[:, None, None, None] + z)**2, dim=(1, 2, 3))
+        per_sample_loss = torch.sum((score * self._bcast(std) + z)**2, dim=self._sum_axes())
         return torch.mean(per_sample_loss), per_sample_loss.detach(), random_t.detach()
 
     def training_step(self, batch, batch_idx):
@@ -148,7 +167,7 @@ class DiffusionModel(pl.LightningModule):
             dt_all = time_steps[:-1] - time_steps[1:]
 
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
-            x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            x = torch.randn(*self._sample_shape(num_samples), device=device) * init_std
             batch_t = torch.empty(num_samples, device=device)
 
             for i in tqdm(range(num_steps), desc="Sampling (EM)"):
@@ -199,7 +218,7 @@ class DiffusionModel(pl.LightningModule):
                 [self.marginal_prob_std_fn(t) for t in time_steps]).tolist()
             time_steps_f = time_steps.tolist()
 
-            x = torch.randn(num_samples, 1, self.L, self.L,
+            x = torch.randn(*self._sample_shape(num_samples),
                             device=device) * sigma_steps[0]
             batch_t = torch.empty(num_samples, device=device)
 
@@ -257,7 +276,7 @@ class DiffusionModel(pl.LightningModule):
 
         self.eval()
         device = self.device
-        shape = (num_samples, 1, self.L, self.L)
+        shape = self._sample_shape(num_samples)
 
         with self.ema.average_parameters():
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
@@ -286,20 +305,19 @@ class DiffusionModel(pl.LightningModule):
 
     @torch.no_grad()
     def sample2(self, num_samples=64, num_steps=500, eps=1e-3):
-        """Euler-Maruyama sampler."""
+        """Euler-Maruyama sampler (debug variant with fixed t=0.2)."""
         self.eval()
         device = self.device
 
         with self.ema.average_parameters():
             time_steps = torch.linspace(1.0, eps, num_steps, device=device)
-            x_all = torch.zeros(num_steps, num_samples, 1, self.L, self.L, device=device)
+            shape = self._sample_shape(num_samples)
+            x_all = torch.zeros(num_steps, *shape, device=device)
             torch.manual_seed(1234)
-            # x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
-            x = torch.randn(num_samples, 1, self.L, self.L, device=device)
-            for time_idx, time_step in tqdm(enumerate(time_steps), desc="Sampling (EM)"):
-                x_all[time_idx, :, :, :, :] = x
+            x = torch.randn(*shape, device=device)
+            for time_idx, _time_step in tqdm(enumerate(time_steps), desc="Sampling (EM)"):
+                x_all[time_idx] = x
                 batch_t = torch.ones(num_samples, device=device) * torch.tensor(0.2, device=device)
-                # g = 0.05*self.diffusion_coeff_fn(time_step)
                 mean_x = x + self(x, batch_t) * torch.tensor(0.02, device=device)
                 x = mean_x + torch.sqrt(2*torch.tensor(0.02, device=device)) * torch.randn_like(x)
         return x_all
@@ -320,7 +338,7 @@ class DiffusionModel(pl.LightningModule):
             dt_all = time_steps[:-1] - time_steps[1:]
 
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
-            x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            x = torch.randn(*self._sample_shape(num_samples), device=device) * init_std
             batch_t = torch.empty(num_samples, device=device)
             noise_norm = np.sqrt(np.prod(x.shape[1:]))
 
@@ -357,10 +375,10 @@ class DiffusionModel(pl.LightningModule):
             mh_steps:   Number of MALA iterations after EM.
             action_fn:  S(φ) so that π(φ) ∝ exp(−S). Required.
             schedule:   'linear', 'quadratic', 'cosine', 'log', or 'power_N'.
-            mala_step_size: Langevin step h.  Default = auto (1.0 / L²).
+            mala_step_size: Langevin step h.  Default = auto (1.0 / L^spatial_dims).
 
         Returns:
-            x:           Final samples  (num_samples, 1, L, L).
+            x:           Final samples  (num_samples, 1, L, ...).
             accept_rate: Per-sample acceptance rate  (num_samples,).
         """
         assert action_fn is not None, "action_fn is required for MALA diagnostic"
@@ -368,14 +386,14 @@ class DiffusionModel(pl.LightningModule):
         device = self.device
 
         if mala_step_size is None:
-            mala_step_size = 1.0 / (self.L ** 2)
+            mala_step_size = 1.0 / (self.L ** self.spatial_dims)
 
         with self.ema.average_parameters(), torch.autocast(device.type, dtype=torch.bfloat16):
             # --- Phase 1: EM reverse SDE ---
             time_steps = self._build_time_steps(num_steps, eps, schedule, device)
             dt_all = time_steps[:-1] - time_steps[1:]
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
-            x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            x = torch.randn(*self._sample_shape(num_samples), device=device) * init_std
             batch_t = torch.empty(num_samples, device=device)
 
             for i in tqdm(range(num_steps), desc="Phase 1  EM"):
@@ -391,6 +409,7 @@ class DiffusionModel(pl.LightningModule):
             batch_t = torch.ones(num_samples, device=device) * t_mh
             total_accept = torch.zeros(num_samples, device=device)
             log_interval = max(1, mh_steps // 10)
+            sum_axes = self._sum_axes()
 
             for j in tqdm(range(mh_steps), desc="Phase 2  MALA"):
                 score_x = self(x, batch_t)
@@ -400,13 +419,13 @@ class DiffusionModel(pl.LightningModule):
                 score_y = self(y, batch_t)
                 drift = h * (score_x + score_y)
                 log_q = -(0.25 / h) * torch.sum(
-                    (torch.sqrt(2 * h) * noise + drift) ** 2, dim=(1, 2, 3)
-                ) + 0.5 * torch.sum(noise ** 2, dim=(1, 2, 3))
+                    (torch.sqrt(2 * h) * noise + drift) ** 2, dim=sum_axes
+                ) + 0.5 * torch.sum(noise ** 2, dim=sum_axes)
                 log_pi = action_fn(x) - action_fn(y)
 
                 accept_prob = torch.exp(log_pi + log_q).clamp(max=1.0)
                 accept = torch.rand(num_samples, device=device) < accept_prob
-                x = torch.where(accept[:, None, None, None], y, x)
+                x = torch.where(self._bcast(accept), y, x)
                 total_accept += accept.float()
 
                 if (j + 1) % log_interval == 0:
@@ -424,8 +443,8 @@ class DiffusionModel(pl.LightningModule):
         No MALA, no step-size tuning — just a single forward pass.
 
         Args:
-            x_data:    Reference samples (N, 1, L, L) normalised to [−1, 1].
-            grad_S_fn: Function x → ∂S/∂x in normalised space (N, 1, L, L).
+            x_data:    Reference samples (N, 1, L, ...) normalised to [−1, 1].
+            grad_S_fn: Function x → ∂S/∂x in normalised space (same shape).
             t_eval:    Time at which model score is evaluated.
 
         Returns:
@@ -468,7 +487,7 @@ class DiffusionModel(pl.LightningModule):
         score ≈ −z/σ(t). Valid at any t, no knowledge of −∇S needed.
 
         Args:
-            x_data:   Clean samples (N, 1, L, L) normalised to [−1, 1].
+            x_data:   Clean samples (N, 1, L, ...) normalised to [−1, 1].
             t_values: List of time points to evaluate. Defaults to
                       [0.01, 0.05, 0.1, 0.2, 0.5, 0.8].
 
@@ -481,6 +500,7 @@ class DiffusionModel(pl.LightningModule):
         device = self.device
         x = x_data.to(device)
         N = x.shape[0]
+        sum_axes = self._sum_axes()
         results = {}
         for t_val in t_values:
             z = torch.randn_like(x)
@@ -488,6 +508,6 @@ class DiffusionModel(pl.LightningModule):
             x_t = x + z * std
             batch_t = torch.ones(N, device=device) * t_val
             s = self(x_t, batch_t)
-            loss = ((s * std + z) ** 2).sum(dim=(1, 2, 3)).mean().item()
+            loss = ((s * std + z) ** 2).sum(dim=sum_axes).mean().item()
             results[t_val] = loss
         return results

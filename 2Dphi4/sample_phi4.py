@@ -23,6 +23,7 @@ from scipy.special import binom
 
 from networks import ScoreNet, ScoreNetUNetPeriodic, NCSNpp2D
 from diffusion_lightning import DiffusionModel, marginal_prob_std
+from phi4_action import phi4_action as _phi4_action_unified, phi4_grad_S as _phi4_grad_S_unified
 
 
 # ===== Bootstrap cumulants functions =====
@@ -89,23 +90,13 @@ def lattice_bootstrap_cumulants(data, order=2, n_boot=100, seed=None, n_bins=100
 
 
 def phi4_action(phi, k, l, phi_min, phi_max):
-    """Compute 2D phi4 action (with denormalization)."""
-    p = (phi[:, 0, :, :] + 1) / 2 * (phi_max - phi_min) + phi_min
-    neighbor_sum = torch.roll(p, 1, dims=1) + torch.roll(p, 1, dims=2)
-    return torch.sum(-2 * k * p * neighbor_sum + (1 - 2 * l) * p**2 + l * p**4, dim=(1, 2))
+    """2D phi^4 action (delegates to shared ``phi4_action`` module)."""
+    return _phi4_action_unified(phi, k, l, phi_min, phi_max, spatial_dims=2)
 
 
 def phi4_grad_S(phi, k, l, phi_min, phi_max):
-    """∂S/∂x_norm for 2D phi4, returned in normalised-field space (N,1,L,L).
-
-    Chain rule: ∂S/∂x = (∂S/∂p)(∂p/∂x) with p = (x+1)/2*(pmax-pmin)+pmin.
-    """
-    scale = (phi_max - phi_min) / 2.0
-    p = (phi[:, 0, :, :] + 1) / 2 * (phi_max - phi_min) + phi_min
-    nb = (torch.roll(p, 1, dims=1) + torch.roll(p, -1, dims=1)
-        + torch.roll(p, 1, dims=2) + torch.roll(p, -1, dims=2))
-    dS_dp = -2 * k * nb + 2 * (1 - 2 * l) * p + 4 * l * p ** 3
-    return (dS_dp * scale).unsqueeze(1)
+    """∂S/∂x_norm for 2D phi^4 (delegates to shared module)."""
+    return _phi4_grad_S_unified(phi, k, l, phi_min, phi_max, spatial_dims=2)
 
 
 def main():

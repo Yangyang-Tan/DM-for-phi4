@@ -2,6 +2,9 @@
 Data modules for diffusion models.
 """
 
+import os
+import json
+
 import numpy as np
 import torch
 import pytorch_lightning as pl
@@ -83,37 +86,73 @@ class GPUDataLoader:
 
 
 class FieldDataModule(pl.LightningDataModule):
-    """PyTorch Lightning DataModule for field configurations.
+    """PyTorch Lightning DataModule for 2D / 3D lattice field configurations.
+
+    Reads HDF5 with key ``cfgs`` of shape ``(N, L, L)`` for 2D or
+    ``(N, L, L, L)`` for 3D. Auto-detects ``(L, L, L, N)`` 3D layouts and
+    transposes them.
 
     If `device` is given, the entire dataset is pinned on that GPU at setup()
     and the train_dataloader yields batches by slicing GPU tensors — no
     per-epoch host→device transfer.
+
+    If `cache_norm` is True, normalisation min/max are cached to
+    ``<data_path>.norm.json`` on first use and reloaded on subsequent runs.
     """
 
-    def __init__(self, data_path, batch_size=64, normalize=True, device=None):
+    def __init__(self, data_path, batch_size=64, normalize=True, device=None,
+                 num_workers=0, cache_norm=False):
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
         self.normalize = normalize
         self.device = device
+        self.num_workers = num_workers
+        self.cache_norm = cache_norm
+        self.norm_cache_path = data_path + ".norm.json" if cache_norm else None
 
         self.cfgs_min = None
         self.cfgs_max = None
         self.data_on_gpu = None
+
+    def _load_norm_cache(self):
+        if not (self.cache_norm and os.path.exists(self.norm_cache_path)):
+            return False
+        with open(self.norm_cache_path, "r") as f:
+            cache = json.load(f)
+        self.cfgs_min = cache["cfgs_min"]
+        self.cfgs_max = cache["cfgs_max"]
+        print(f"Loaded normalization from cache: [{self.cfgs_min:.4f}, {self.cfgs_max:.4f}]")
+        return True
+
+    def _save_norm_cache(self):
+        if not self.cache_norm:
+            return
+        cache = {"cfgs_min": float(self.cfgs_min), "cfgs_max": float(self.cfgs_max)}
+        with open(self.norm_cache_path, "w") as f:
+            json.dump(cache, f)
+        print(f"Saved normalization to cache: {self.norm_cache_path}")
 
     def setup(self, stage=None):
         import h5py
         with h5py.File(self.data_path, "r") as f:
             cfgs = np.array(f["cfgs"])
 
+        # 3D layout autodetect: (L,L,L,N) -> (N,L,L,L)
+        if cfgs.ndim == 4 and cfgs.shape[-1] > cfgs.shape[0]:
+            cfgs = cfgs.transpose(3, 0, 1, 2)
+
         # Normalize if needed
         if self.normalize:
-            self.cfgs_min = cfgs.min()
-            self.cfgs_max = cfgs.max()
+            if not self._load_norm_cache():
+                self.cfgs_min = float(cfgs.min())
+                self.cfgs_max = float(cfgs.max())
+                self._save_norm_cache()
             cfgs = _normalize_pm1(cfgs, self.cfgs_min, self.cfgs_max)
 
         # Convert to tensors
         configs = torch.from_numpy(cfgs).unsqueeze(1).float()
+        del cfgs
 
         if self.device:
             self.data_on_gpu = configs.to(self.device)
@@ -126,7 +165,12 @@ class FieldDataModule(pl.LightningDataModule):
     def train_dataloader(self):
         if self.device:
             return GPUDataLoader(self.data_on_gpu, self.data_on_gpu, self.batch_size)
-        return DataLoader(self.train_data, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            self.train_data, batch_size=self.batch_size, shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=self.num_workers > 0,
+            persistent_workers=self.num_workers > 0,
+        )
 
     def renorm(self, y):
         """Renormalize data back to original scale."""

@@ -6,7 +6,9 @@ improves the propagator UV mismatch we observed.
 Output: samples_em_linear_steps2000_epoch=10000.npy  (same format as sweep)
 """
 import sys, os, functools, time
-sys.path.append("..")
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))   # 3Dphi4/
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))  # repo root
 
 import numpy as np
 import torch

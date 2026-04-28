@@ -9,9 +9,12 @@ Usage:
 
 import os
 import re
+import sys
 import functools
 import argparse
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import h5py
 import torch
@@ -21,6 +24,7 @@ from scipy.special import binom
 
 from networks_3d import ScoreNet3D, ScoreNet3DUNetPeriodic, NCSNpp3D
 from diffusion_lightning_3d import DiffusionModel3D, marginal_prob_std
+from phi4_action import phi4_action as _phi4_action_unified, phi4_grad_S as _phi4_grad_S_unified
 
 
 # ===== Bootstrap cumulants functions =====
@@ -86,23 +90,13 @@ def lattice_bootstrap_cumulants(data, order=2, n_boot=100, seed=None, n_bins=100
 
 
 def phi4_action_3d(phi, k, l, phi_min, phi_max):
-    """Compute 3D phi4 action (with denormalization)."""
-    p = (phi[:, 0, :, :, :] + 1) / 2 * (phi_max - phi_min) + phi_min
-    neighbor_sum = (torch.roll(p, 1, dims=1) +
-                    torch.roll(p, 1, dims=2) +
-                    torch.roll(p, 1, dims=3))
-    return torch.sum(-2 * k * p * neighbor_sum + (1 - 2 * l) * p**2 + l * p**4, dim=(1, 2, 3))
+    """3D phi^4 action (delegates to shared ``phi4_action`` module)."""
+    return _phi4_action_unified(phi, k, l, phi_min, phi_max, spatial_dims=3)
 
 
 def phi4_grad_S_3d(phi, k, l, phi_min, phi_max):
-    """∂S/∂x_norm for 3D phi4, returned in normalised-field space (N,1,L,L,L)."""
-    scale = (phi_max - phi_min) / 2.0
-    p = (phi[:, 0, :, :, :] + 1) / 2 * (phi_max - phi_min) + phi_min
-    nb = (torch.roll(p, 1, dims=1) + torch.roll(p, -1, dims=1)
-        + torch.roll(p, 1, dims=2) + torch.roll(p, -1, dims=2)
-        + torch.roll(p, 1, dims=3) + torch.roll(p, -1, dims=3))
-    dS_dp = -2 * k * nb + 2 * (1 - 2 * l) * p + 4 * l * p ** 3
-    return (dS_dp * scale).unsqueeze(1)
+    """∂S/∂x_norm for 3D phi^4 (delegates to shared module)."""
+    return _phi4_grad_S_unified(phi, k, l, phi_min, phi_max, spatial_dims=3)
 
 
 def main():
