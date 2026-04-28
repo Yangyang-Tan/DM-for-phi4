@@ -189,7 +189,7 @@ class DiffusionModel3D(pl.LightningModule):
         self.eval()
         device = self.device
 
-        with torch.no_grad():
+        with self.ema.average_parameters(), torch.autocast(device.type, dtype=torch.bfloat16):
             time_steps = self._build_time_steps(num_steps, eps, schedule, device)
 
             init_std = self.marginal_prob_std_fn(torch.tensor(1.0, device=device))
@@ -203,6 +203,59 @@ class DiffusionModel3D(pl.LightningModule):
                 mean_x = x + g**2 * self(x, batch_t) * dt
                 x = mean_x + g * torch.sqrt(dt) * torch.randn_like(x)
         return mean_x
+
+    def _sigma_to_t(self, sigma_val):
+        """Invert marginal_prob_std: given σ, find t such that σ(t) = sigma_val."""
+        log_sigma = np.log(self.sigma)
+        return np.log(2 * log_sigma * sigma_val**2 + 1) / (2 * log_sigma)
+
+    @torch.no_grad()
+    def sample_ode(self, num_samples=64, num_steps=500, eps=1e-5,
+                   schedule='log', method='dpm2'):
+        """Probability flow ODE sampler via DPM-Solver (deterministic), 3D version."""
+        self.eval()
+        device = self.device
+        with self.ema.average_parameters():
+            time_steps = self._build_time_steps(num_steps, eps, schedule, device)
+            sigma_steps = torch.stack(
+                [self.marginal_prob_std_fn(t) for t in time_steps]).tolist()
+            time_steps_f = time_steps.tolist()
+
+            x = torch.randn(num_samples, 1, self.L, self.L, self.L,
+                            device=device) * sigma_steps[0]
+            batch_t = torch.empty(num_samples, device=device)
+
+            def noise_pred(x, t_val, sigma_t):
+                batch_t.fill_(t_val)
+                return -sigma_t * self(x, batch_t)
+
+            for i in tqdm(range(num_steps), desc=f"Sampling (DPM-{method[-1]})"):
+                sigma_s = sigma_steps[i]
+                sigma_next = sigma_steps[i + 1]
+                t_s = time_steps_f[i]
+
+                eps_s = noise_pred(x, t_s, sigma_s)
+
+                if method == 'dpm1':
+                    x = x + (sigma_next - sigma_s) * eps_s
+                elif method == 'dpm2':
+                    sigma_mid = (sigma_s * sigma_next) ** 0.5
+                    t_mid = self._sigma_to_t(sigma_mid)
+                    x_mid = x + (sigma_mid - sigma_s) * eps_s
+                    eps_mid = noise_pred(x_mid, t_mid, sigma_mid)
+                    x = x + (sigma_next - sigma_s) * eps_mid
+                elif method == 'dpm3':
+                    s1 = sigma_s ** (2/3) * sigma_next ** (1/3)
+                    s2 = sigma_s ** (1/3) * sigma_next ** (2/3)
+                    t1 = self._sigma_to_t(s1)
+                    t2 = self._sigma_to_t(s2)
+                    x1 = x + (s1 - sigma_s) * eps_s
+                    e1 = noise_pred(x1, t1, s1)
+                    x2 = x + (s2 - sigma_s) * (2 * e1 - eps_s)
+                    e2 = noise_pred(x2, t2, s2)
+                    x = x + (sigma_next - sigma_s) * (eps_s/6 + 2*e1/3 + e2/6)
+
+        return x
 
     @torch.no_grad()
     def sample_pc(self, num_samples=64, num_steps=500, snr=0.16, eps=1e-3,

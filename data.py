@@ -10,6 +10,14 @@ import torchvision
 import torchvision.transforms as transforms
 
 
+def _normalize_pm1(arr, lo, hi):
+    return ((arr - lo) / (hi - lo) - 0.5) * 2
+
+
+def _renorm_pm1(y, lo, hi):
+    return (y / 2 + 0.5) * (hi - lo) + lo
+
+
 class MNISTDataModule(pl.LightningDataModule):
     """PyTorch Lightning DataModule for MNIST.
     
@@ -102,7 +110,7 @@ class FieldDataModule(pl.LightningDataModule):
         if self.normalize:
             self.cfgs_min = cfgs.min()
             self.cfgs_max = cfgs.max()
-            cfgs = ((cfgs - self.cfgs_min) / (self.cfgs_max - self.cfgs_min) - 0.5) * 2
+            cfgs = _normalize_pm1(cfgs, self.cfgs_min, self.cfgs_max)
 
         # Convert to tensors
         configs = torch.from_numpy(cfgs).unsqueeze(1).float()
@@ -124,4 +132,110 @@ class FieldDataModule(pl.LightningDataModule):
         """Renormalize data back to original scale."""
         if self.cfgs_min is None:
             return y
-        return (y / 2 + 0.5) * (self.cfgs_max - self.cfgs_min) + self.cfgs_min
+        return _renorm_pm1(y, self.cfgs_min, self.cfgs_max)
+
+
+class MultiLFieldDataModule(pl.LightningDataModule):
+    """Multi-lattice-size DataModule for cross-L score-based training.
+
+    Loads several jld2 files (one per L), pools them, and yields random batches
+    where each batch contains a single L (since shapes must agree within a
+    batch). Normalisation uses a single global (min, max) computed over the
+    pooled data — the std is approximately L-independent for this physics so
+    a uniform [-1,1] map is appropriate, and using one norm makes the
+    network's input scale L-invariant.
+
+    Per-step L is sampled with probability proportional to dataset size
+    (i.e. one epoch ≈ one pass over all configurations).
+    """
+
+    def __init__(self, data_paths, batch_size=64, normalize=True, device=None):
+        super().__init__()
+        self.data_paths = list(data_paths)
+        self.batch_size = batch_size
+        self.normalize = normalize
+        self.device = device
+
+        self.cfgs_min = None
+        self.cfgs_max = None
+        self.data_by_L = None      # dict: L -> tensor (N, 1, L, L)
+        self.Ls = None             # sorted list of L's available
+        self.N_total = 0
+
+    def setup(self, stage=None):
+        import h5py
+        self.N_total = 0
+        raws = {}
+        for path in self.data_paths:
+            with h5py.File(path, "r") as f:
+                cfgs = np.array(f["cfgs"])
+            # Heuristic: detect sample axis (largest) and put it first
+            sample_axis = int(np.argmax(cfgs.shape))
+            if cfgs.ndim == 3 and sample_axis != 0:
+                cfgs = np.moveaxis(cfgs, sample_axis, 0)
+            L = int(cfgs.shape[1])
+            assert cfgs.shape[2] == L, f"non-square lattice in {path}: {cfgs.shape}"
+            raws[L] = cfgs.astype(np.float32)
+
+        # Pooled global normalisation
+        if self.normalize:
+            mins = [r.min() for r in raws.values()]
+            maxs = [r.max() for r in raws.values()]
+            self.cfgs_min = float(min(mins))
+            self.cfgs_max = float(max(maxs))
+            print(f"Multi-L pooled norm: [{self.cfgs_min:.4f}, {self.cfgs_max:.4f}] "
+                  f"over Ls = {sorted(raws.keys())}")
+            for L in raws:
+                raws[L] = _normalize_pm1(raws[L], self.cfgs_min, self.cfgs_max)
+
+        self.data_by_L = {}
+        for L, arr in raws.items():
+            t = torch.from_numpy(arr).unsqueeze(1).float()
+            if self.device:
+                t = t.to(self.device)
+            self.data_by_L[L] = t
+            self.N_total += t.shape[0]
+        self.Ls = sorted(self.data_by_L.keys())
+
+        sizes = ", ".join(f"L={L}: N={self.data_by_L[L].shape[0]}" for L in self.Ls)
+        if self.device:
+            total_gb = sum(t.nbytes for t in self.data_by_L.values()) / 1e9
+            print(f"Multi-L data on {self.device}: {sizes}  ({total_gb:.2f} GB)")
+        else:
+            print(f"Multi-L data on CPU: {sizes}")
+
+    def train_dataloader(self):
+        return MultiLBatchSampler(self.data_by_L, self.batch_size)
+
+    def renorm(self, y):
+        if self.cfgs_min is None:
+            return y
+        return _renorm_pm1(y, self.cfgs_min, self.cfgs_max)
+
+
+class MultiLBatchSampler:
+    """Iterator that yields one batch per step from a randomly-chosen L.
+
+    `len(self)` corresponds to one pass over all configurations (across L's).
+    L is sampled per step with probability proportional to dataset size.
+    """
+
+    def __init__(self, data_by_L, batch_size):
+        self.data_by_L = data_by_L
+        self.batch_size = batch_size
+        self.Ls = sorted(data_by_L.keys())
+        self.sizes = np.array([data_by_L[L].shape[0] for L in self.Ls], dtype=np.float64)
+        self.probs = self.sizes / self.sizes.sum()
+        self.n_steps = int(self.sizes.sum() // batch_size)
+
+    def __iter__(self):
+        rng = np.random.default_rng()
+        for _ in range(self.n_steps):
+            L = self.Ls[int(rng.choice(len(self.Ls), p=self.probs))]
+            data = self.data_by_L[L]
+            idx = torch.randint(0, data.shape[0], (self.batch_size,), device=data.device)
+            x = data[idx]
+            yield x, x
+
+    def __len__(self):
+        return self.n_steps

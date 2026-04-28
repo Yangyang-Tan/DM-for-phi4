@@ -152,7 +152,7 @@
 \section{Diffusion models}
 \label{sec:dm_framework}
 
-Diffusion models~\cite{Ho2020DDPM,Song2021SDE} are a class of generative models that learn a data distribution $p_{\text{data}}(\phi)$ by reversing a gradual noising process. The forward process progressively corrupts a data sample $\phi(0)\sim p_{\text{data}}$ into pure noise $\phi(T)$ over a time interval $t\in[0,T]$, while the reverse process learns to denoise and thereby generate new samples from the Gaussian noise. Unlike one-shot generators such as GANs or VAEs, diffusion models decompose generation into many small denoising steps, each of which is a tractable learning problem.
+Diffusion models~\cite{Ho2020DDPM,Song2021SDE} are a class of generative models that learn a target distribution $p_{\text{data}}(\phi)$ by inverting a gradual noising process. In the forward direction, a data sample $\phi_0\sim p_{\text{data}}$ is progressively corrupted into pure noise $\phi_{t_{\max}}$ over a fictitious time interval $t\in[0,t_{\max}]$. In the reverse direction, the model learns to denoise, thereby transporting samples from an analytically tractable prior back to the data distribution. Unlike one-shot generators such as GANs or VAEs, diffusion models decompose the generative task into a sequence of local denoising problems, each individually tractable and composing into an expressive and stable sampler. This structure is especially well suited to lattice field configurations. High-quality training data can be produced by standard Monte Carlo, and because the action $S[\phi]$ is known in closed form, the generated samples can be exactness-corrected against $e^{-S[\phi]}$ via a Metropolis-adjusted Langevin (MALA) step driven by the learned score.
 
 \subsection{Forward process as a stochastic differential equation}
 \label{sec:dm_forward}
@@ -162,85 +162,111 @@ The forward noising process can be formulated as an It\^o stochastic differentia
 \mathrm{d}\phi \;=\; f(\phi,t)\,\mathrm{d}t \;+\; g(t)\,\mathrm{d}w,
 \label{eq:forward_sde}
 \end{equation}
-where $f(\phi,t)$ is the drift coefficient, $g(t)$ the diffusion coefficient, and $w$ a standard $n$-dimensional Wiener process. Two canonical choices have emerged.
-
-\paragraph{Variance-preserving (VP) SDE.}
-With $f(\phi,t)=-\tfrac{1}{2}\beta(t)\phi$ and $g(t)=\sqrt{\beta(t)}$, equation~\eq{eq:forward_sde} reduces to a time-inhomogeneous Ornstein--Uhlenbeck process whose marginal variance is bounded. Denoting $\bar\alpha(t)=\exp\!\bigl(-\int_{0}^{t}\beta(s)\,\mathrm{d}s\bigr)$, the transition kernel is
+where $f(\phi,t)$ is the drift term, $g(t)$ the diffusion coefficient, and $w$ is a Wiener process with independent components at every spatial point. Equivalently, the Langevin form reads
 \begin{equation}
-p_{0t}\bigl(\phi(t)\,\bigl|\,\phi(0)\bigr) \;=\; \mathcal{N}\!\Bigl(\phi(t);\,\sqrt{\bar\alpha(t)}\,\phi(0),\,(1-\bar\alpha(t))\,\mathbb{1}\Bigr).
+\begin{aligned}
+\frac{\partial \phi_t(x)}{\partial t} &\;=\; f\!\bigl(\phi_t(x),t\bigr) \;+\; g(t)\,\eta(t,x),\\
+\bigl\langle \eta(t,x)\,\eta(t',x')\bigr\rangle &\;=\; \delta(x-x')\,\delta(t-t'),
+\end{aligned}
+\label{eq:forward_langevin}
+\end{equation}
+with $\eta$ a Gaussian white noise uncorrelated between distinct spatial points $x$. Two canonical choices of $(f,g)$ have emerged.
+
+\paragraph{Variance-preserving(VP)}
+The variance-preserving choice takes $f(\phi,t)=-\tfrac{1}{2}\beta(t)\phi$ and $g(t)=\sqrt{\beta(t)}$, with $\beta(t)>0$ controlling both the drift and the noise strength. The drift is proportional to $\phi$ with a negative coefficient, and hence acts as a restoring force towards zero. Integrating \Eq{eq:forward_sde} over the interval $[0,t]$ from the initial condition $\phi_0$, the distribution of $\phi_t$ conditioned on $\phi_0$ is a Gaussian,
+\begin{equation}
+p_{0t}\bigl(\phi_t\,\bigl|\,\phi_0\bigr) \;=\; \mathcal{N}\!\Bigl(\phi_t;\,\sqrt{\bar\alpha(t)}\,\phi_0,\,(1-\bar\alpha(t))\,\mathbb{1}\Bigr),
 \label{eq:vp_kernel}
 \end{equation}
-Provided the data are normalised to unit variance, $\mathrm{Var}[\phi(t)]$ is preserved exactly at unity for all $t$. This is the continuous-time limit of the discrete DDPM formulation of Ho~\emph{et al.}~\cite{Ho2020DDPM}.
+with $\bar\alpha(t)=\exp\!\bigl(-\int_{0}^{t}\beta(s)\,\mathrm{d}s\bigr)$ decreasing from $1$ at $t=0$ to $0$ as $t\to\infty$. The conditional mean $\sqrt{\bar\alpha(t)}\,\phi_0$ shrinks from $\phi_0$ towards zero while the conditional variance $1-\bar\alpha(t)$ grows from $0$ to $1$, so the endpoint distribution approaches the standard Gaussian $\mathcal{N}(0,\mathbb{1})$ regardless of $\phi_0$. For unit-variance data, $\mathrm{Var}[\phi_t]=\bar\alpha(t)\,\mathrm{Var}[\phi_0]+(1-\bar\alpha(t))=1$ at all $t$, giving the schedule its name \textit{Variance-preserving}. \Eq{eq:vp_kernel} is also the continuous-time limit of the DDPM formulation of Ho~\emph{et al.}~\cite{Ho2020DDPM}.
 
-\paragraph{Variance-exploding (VE) SDE.}
-With $f(\phi,t)=0$ and a diffusion coefficient whose square integrates to a prescribed variance schedule $\sigma^{2}(t)$, one obtains
+\paragraph{Variance-exploding(VE).}
+The variance-exploding choice takes $f(\phi,t)=0$ and a positive diffusion coefficient $g(t)$ as a prescribed noise schedule, so the SDE reads
 \begin{equation}
-\mathrm{d}\phi \;=\; \sqrt{\frac{\mathrm{d}[\sigma^{2}(t)]}{\mathrm{d}t}}\,\mathrm{d}w,
+\mathrm{d}\phi \;=\; g(t)\,\mathrm{d}w.
 \label{eq:ve_sde_explicit}
 \end{equation}
-whose transition kernel is
+The absence of drift leaves the initial field $\phi_0$ untouched while noise of growing variance is injected on top, from which the schedule takes its name. Integrating \Eq{eq:ve_sde_explicit} over the interval $[0,t]$ from the initial condition $\phi_0$, the distribution of $\phi_t$ conditioned on $\phi_0$ is a Gaussian,
 \begin{equation}
-p_{0t}\bigl(\phi(t)\,\bigl|\,\phi(0)\bigr) \;=\; \mathcal{N}\!\bigl(\phi(t);\,\phi(0),\,\sigma^{2}(t)\,\mathbb{1}\bigr).
+p_{0t}\bigl(\phi_t\,\bigl|\,\phi_0\bigr) \;=\; \mathcal{N}\!\bigl(\phi_t;\,\phi_0,\,\sigma^{2}(t)\,\mathbb{1}\bigr),
 \label{eq:ve_sde_kernel}
 \end{equation}
-The signal $\phi(0)$ is preserved exactly and noise of growing variance is added on top. In this convention $\sigma_{\max}$ is typically chosen following the prescription of Song \& Ermon~\cite{SongErmon2020}, $\sigma_{\max}\gtrsim\max_{i,j}\|\phi_{i}-\phi_{j}\|_{2}$, so that $p_{\sigma_{\max}}(\phi)$ covers the entire data manifold. This formulation corresponds to the NCSN/SMLD line of work~\cite{SongErmon2019}.
+with conditional mean fixed at $\phi_0$ and conditional variance $\sigma^2(t)\,\mathbb{1}$, where $\sigma^2(t)=\int_0^t g(s)^2\,\mathrm{d}s$ is the accumulated noise variance and grows monotonically from $0$ at $t=0$. The terminal noise scale $\sigma_{\max}$ is typically chosen following the prescription of Song \& Ermon~\cite{SongErmon2020}, $\sigma_{\max}\gtrsim\max_{i,j}\|\phi_{i}-\phi_{j}\|_{2}$, where $\phi_{i}$, $\phi_{j}$ run over pairs of training configurations. This bound ensures that the noise-smeared distribution $p_{\sigma_{\max}}(\phi)=\int p_{\text{data}}(\phi')\,\mathcal{N}\!\bigl(\phi;\phi',\sigma_{\max}^2\mathbb{1}\bigr)\,\mathrm{d}\phi'$ is effectively a single Gaussian that retains essentially no information about the initial field $\phi_0$. This formulation corresponds to the NCSN/SMLD line of work~\cite{SongErmon2019}.
 
-Throughout this work we adopt the VE form with the geometric schedule $g(t)=\sigma^{t}$ on $t\in[0,1]$ parametrised by a single scalar hyperparameter $\sigma>1$. The corresponding variance follows by direct integration,
+Throughout this work we adopt the VE form with the geometric schedule $g(t)=\sigma^{t}$ on $t\in[0,1]$, parametrised by a single scalar hyperparameter $\sigma>1$. For this choice the accumulated variance evaluates in closed form,
 \begin{equation}
 \sigma^{2}(t) \;=\; \int_{0}^{t}\!g(s)^{2}\,\mathrm{d}s \;=\; \frac{\sigma^{2t}-1}{2\ln\sigma},
 \label{eq:ve_sigma_schedule}
 \end{equation}
-and the endpoint value $\sigma(1)=\sqrt{(\sigma^{2}-1)/(2\ln\sigma)}$ sets the maximum noise scale realised during training. We emphasise that the hyperparameter $\sigma$ appearing in $g(t)=\sigma^{t}$ is \emph{not} to be identified with the $\sigma_{\max}$ quantity entering the Song--Ermon prescription~\cite{SongErmon2020}: the two are related by~\eq{eq:ve_sigma_schedule} evaluated at $t=1$. Equating them leads to schedules that are drastically miscalibrated for lattice data, where typical field excursions can exceed those of image data by orders of magnitude.
-
-\subsection{Score matching}
-\label{sec:dm_score_matching}
-
-The key observation enabling reverse-time generation is that the reverse dynamics depend on the data distribution only through the time-dependent \emph{score function}
-\begin{equation}
-s(\phi,t) \;=\; \nabla_{\phi}\log p_{t}(\phi).
-\label{eq:score_def}
-\end{equation}
-A neural network $s_{\theta}(\phi,t)$ is trained to approximate this score via the denoising score-matching objective~\cite{Vincent2011}
-\begin{multline}
-\mathcal{L}(\theta) \;=\; \mathbb{E}_{t,\,\phi(0),\,\phi(t)\mid\phi(0)}\Bigl[\lambda(t)\,\bigl\|s_{\theta}(\phi(t),t)\\[-1pt]
--\nabla_{\phi(t)}\log p_{0t}\bigl(\phi(t)\,\bigl|\,\phi(0)\bigr)\bigr\|^{2}\Bigr],
-\label{eq:dsm}
-\end{multline}
-where $\lambda(t)>0$ is a weighting function. Because the conditional distribution $p_{0t}(\phi(t)\mid\phi(0))$ is Gaussian with known mean and variance---see~\eq{eq:vp_kernel} and~\eq{eq:ve_sde_kernel}---the target score in~\eq{eq:dsm} admits a closed form, making the objective tractable. In practice this is often reparameterised as predicting the injected noise $\epsilon$ (the ``$\epsilon$-prediction'' of DDPM) or the clean signal $\phi(0)$.
-
-For the VE schedule adopted in this work, the conditional score is elementary,
-\begin{equation}
-\nabla_{\phi(t)}\log p_{0t}\bigl(\phi(t)\,\bigl|\,\phi(0)\bigr) \;=\; -\frac{\phi(t)-\phi(0)}{\sigma^{2}(t)} \;=\; -\frac{\epsilon}{\sigma(t)},
-\label{eq:ve_cond_score}
-\end{equation}
-with $\phi(t)=\phi(0)+\sigma(t)\,\epsilon$ and $\epsilon\sim\mathcal{N}(0,\mathbb{1})$. Inserting~\eq{eq:ve_cond_score} and choosing $\lambda(t)=\sigma^{2}(t)$ to equalise the signal-to-noise ratio across the diffusion trajectory yields the practical training objective
-\begin{equation}
-\mathcal{L}(\theta) \;=\; \mathbb{E}_{t,\,\phi(0),\,\epsilon}\!\left[\bigl\|\sigma(t)\,s_{\theta}(\phi(t),t)+\epsilon\bigr\|^{2}\right],
-\label{eq:dsm_loss_ve}
-\end{equation}
-which is the loss minimised in all subsequent training runs. Because the VE forward SDE has no drift, its marginals satisfy $p_{t}\to p_{0}$ as $t\to 0$, so that a converged network satisfies
-\begin{equation}
-s_{\theta}(\phi,t)\;\xrightarrow[t\to 0]{}\;-\,\nabla_{\phi}S(\phi).
-\label{eq:score_small_t}
-\end{equation}
-The small-$t$ limit of the learned score therefore recovers the physical force of the lattice action as a byproduct of training on noise-denoising pairs. The precision of this limit, and the sensitivity of the downstream reverse dynamics to its residual error, underlie the diagnostics of \Sec{sec:acceptance} and \Sec{sec:score_quality}.
+with endpoint $\sigma(1)=\sqrt{(\sigma^{2}-1)/(2\ln\sigma)}$ setting the maximum noise scale realised during training. Note that the hyperparameter $\sigma$ is \emph{not} the terminal noise scale $\sigma_{\max}$. The two are related by $\sigma_{\max}=\sigma(1)$.
 
 \subsection{Reverse-time generation}
 \label{sec:dm_reverse}
 
-Given a trained score network, samples are generated by evolving from a tractable prior $\phi(T)\sim\pi$ back to $t=0$. Two dynamics yield the same marginal distributions $\{p_{t}\}_{t\in[0,T]}$~\cite{Anderson1982,Song2021SDE}. The reverse-time SDE reads
+To draw samples from $p_{\text{data}}$ we must invert the forward dynamics of~\Eq{eq:forward_sde}, transporting an endpoint $\phi_{t_{\max}}\sim p_{t_{\max}}$ drawn from the tractable terminal distribution back to $t=0$. Anderson~\cite{Anderson1982} showed that the time-reversal of an It\^o SDE is itself an It\^o SDE. Applied to~\Eq{eq:forward_sde}, yields~\cite{Song2021SDE}
 \begin{equation}
-\mathrm{d}\phi \;=\; \bigl[f(\phi,t)-g^{2}(t)\,s_{\theta}(\phi,t)\bigr]\,\mathrm{d}t \;+\; g(t)\,\mathrm{d}\bar{w},
-\label{eq:reverse_sde}
+\mathrm{d}\phi \;=\; \bigl[f(\phi,t)-g^{2}(t)\,\nabla_{\phi}\log p_{t}(\phi)\bigr]\,\mathrm{d}t \;+\; g(t)\,\mathrm{d}\bar{w},
+\label{eq:reverse_sde_exact}
 \end{equation}
-while the equivalent probability-flow ODE is
+where~\Eq{eq:reverse_sde_exact} is understood as being integrated in the reverse direction from $t=t_{\max}$ down to $t=0$, so that $\mathrm{d}t<0$ is an infinitesimal negative time step, and $\mathrm{d}\bar{w}$ denotes an independent standard Wiener increment at each such step. Song~\emph{et al.}~\cite{Song2021SDE} further established the existence of a deterministic probability-flow ODE
 \begin{equation}
-\frac{\mathrm{d}\phi}{\mathrm{d}t} \;=\; f(\phi,t)-\tfrac{1}{2}\,g^{2}(t)\,s_{\theta}(\phi,t).
-\label{eq:prob_flow_ode}
+\frac{\mathrm{d}\phi}{\mathrm{d}t} \;=\; f(\phi,t)-\tfrac{1}{2}\,g^{2}(t)\,\nabla_{\phi}\log p_{t}(\phi)
+\label{eq:prob_flow_ode_exact}
 \end{equation}
-Although~\eq{eq:reverse_sde} and~\eq{eq:prob_flow_ode} share the same marginals, they differ substantially at the level of individual trajectories. The SDE is stochastic and non-invertible, but its noise injection acts as a Langevin-like correction that damps accumulated errors from an imperfect score network. The ODE is deterministic and invertible, enabling likelihood evaluation via the continuous change-of-variables formula, latent-space interpolation, and exact inversion. The ODE also admits higher-order numerical solvers (e.g.\ DPM-Solver~\cite{LuDPMSolver2022}, the Heun sampler of EDM~\cite{Karras2022EDM}), allowing high-quality generation in $10$--$35$ function evaluations.
+whose marginal density at every $t\in[0,t_{\max}]$ coincides with that of the forward SDE~\Eq{eq:forward_sde} and the reverse SDE~\Eq{eq:reverse_sde_exact}. Concretely, an ensemble initialised at $\phi_{0}\sim p_{\text{data}}$ and evolved forward in $t$ under~\Eq{eq:forward_sde}, or initialised at $\phi_{t_{\max}}\sim p_{t_{\max}}$ and evolved backward in $t$ under either~\Eq{eq:reverse_sde_exact} or~\Eq{eq:prob_flow_ode_exact}, produces the same marginal $p_{t}(\phi)$ at every intermediate time slice, even though the three processes generate distinct individual trajectories. Being deterministic,~\Eq{eq:prob_flow_ode_exact} admits integration in either direction of $t$. For generative sampling we integrate it in the reverse direction from $t=t_{\max}$ down to $t=0$, starting from $\phi_{t_{\max}}\sim p_{t_{\max}}$.
 
-The choice of sampler involves a trade-off. For applications demanding high \emph{spectral fidelity}---for instance when the two-point correlation function $G(p)$ of generated configurations is used as a physically meaningful quality metric, as in the propagator study of \Sec{sec:dm_propagator}---the reverse SDE, or a hybrid stochastic sampler that periodically injects noise into an ODE trajectory, tends to produce more faithful ultraviolet behaviour. A deterministic ODE integrator will faithfully reproduce any bias present in the learned score, whereas the stochasticity of the SDE provides a relaxation mechanism towards the true marginal at each time slice.
+The crucial observation is that both reverse dynamics depend on the data distribution only through the time-dependent \emph{score function}
+\begin{equation}
+s(\phi,t) \;=\; \nabla_{\phi}\log p_{t}(\phi),
+\label{eq:score_def}
+\end{equation}
+a vector of the same dimension as $\phi$. Replacing $s(\phi,t)$ in~\Eq{eq:reverse_sde_exact} and~\Eq{eq:prob_flow_ode_exact} with a neural approximation $s_{\theta}(\phi,t)$ yields the practical samplers
+\begin{align}
+\mathrm{d}\phi &\;=\; \bigl[f(\phi,t)-g^{2}(t)\,s_{\theta}(\phi,t)\bigr]\,\mathrm{d}t \;+\; g(t)\,\mathrm{d}\bar{w},
+\label{eq:reverse_sde}\\
+\frac{\mathrm{d}\phi}{\mathrm{d}t} &\;=\; f(\phi,t)-\tfrac{1}{2}\,g^{2}(t)\,s_{\theta}(\phi,t).
+\label{eq:prob_flow_ode}
+\end{align}
+The training of $s_{\theta}$ is the subject of \Sec{sec:dm_score_matching}.
+
+Although~\Eq{eq:reverse_sde_exact} and~\Eq{eq:prob_flow_ode_exact} have identical exact marginals, their discretisations with an imperfect $s_{\theta}$ behave very differently at the level of individual trajectories. The reverse SDE~\Eq{eq:reverse_sde} is stochastic and non-invertible, but its injected noise acts as a Langevin-like corrector that damps accumulated score errors at each step~\cite{Karras2022EDM}. The probability-flow ODE~\Eq{eq:prob_flow_ode} is deterministic and invertible, enabling likelihood evaluation via the continuous change-of-variables formula and latent-space interpolation. It also admits higher-order numerical solvers such as DPM-Solver~\cite{LuDPMSolver2022} or the Heun integrator of EDM~\cite{Karras2022EDM}, which reach high-quality generation in $10$--$35$ function evaluations.
+
+The choice of sampler therefore involves a trade-off. A deterministic ODE integrator faithfully reproduces any systematic bias present in $s_{\theta}$, whereas the stochasticity of the reverse SDE provides a relaxation mechanism towards the true marginal at every time slice. For applications demanding high \emph{spectral fidelity}, in particular when the two-point function $G(p)$ of generated configurations is used as a physically meaningful quality metric (as in the propagator study of \Sec{sec:dm_propagator}), the reverse SDE, or a predictor-corrector hybrid that periodically injects Langevin noise into an ODE trajectory~\cite{Song2021SDE}, therefore tends to produce more faithful behaviour.
+
+\subsection{Score matching}
+\label{sec:dm_score_matching}
+
+The reverse samplers~\Eq{eq:reverse_sde} and~\Eq{eq:prob_flow_ode} require the score $s(\phi,t)=\nabla_{\phi}\log p_{t}(\phi)$ at every noise level $t$. The marginal is itself an integral over the unknown data distribution,
+\begin{equation}
+p_{t}(\phi)\;=\;\int p_{\text{data}}(\phi_{0})\,p_{0t}(\phi\mid\phi_{0})\,\mathrm{d}\phi_{0},
+\label{eq:marginal_pt}
+\end{equation}
+so $\nabla_{\phi}\log p_{t}$ is not available as a direct training target. \emph{Denoising score matching}~\cite{Vincent2011} sidesteps this by fitting $s_{\theta}(\phi,t)$ to the analytically known score of the \emph{conditional} distribution $p_{0t}(\phi_{t}\mid\phi_{0})$, minimising
+\begin{multline}
+\mathcal{L}(\theta) \;=\; \mathbb{E}_{t,\,\phi_{0},\,\phi_{t}\mid\phi_{0}}\Bigl[\lambda(t)\,\bigl\|s_{\theta}(\phi_{t},t)\\[-1pt]
+-\nabla_{\phi_{t}}\log p_{0t}\bigl(\phi_{t}\,\bigl|\,\phi_{0}\bigr)\bigr\|^{2}\Bigr],
+\label{eq:dsm}
+\end{multline}
+with $\lambda(t)>0$ a weighting function, $t\sim\mathrm{Uniform}(0,t_{\max})$, $\phi_{0}\sim p_{\text{data}}$, and $\phi_{t}\sim p_{0t}(\cdot\mid\phi_{0})$. A key identity~\cite{Vincent2011} shows that~\Eq{eq:dsm} and the (intractable) explicit score-matching loss $\mathbb{E}_{t,\phi_{t}}\!\bigl[\lambda(t)\|s_{\theta}(\phi_{t},t)-\nabla_{\phi_{t}}\log p_{t}(\phi_{t})\|^{2}\bigr]$ differ only by an additive $\theta$-independent constant. The global minimiser of~\Eq{eq:dsm} is therefore the \emph{marginal} score $\nabla_{\phi_{t}}\log p_{t}$, even though the target in~\Eq{eq:dsm} is only the conditional score. Because $p_{0t}(\phi_{t}\mid\phi_{0})$ is Gaussian with known mean and variance (\Eq{eq:vp_kernel} and~\Eq{eq:ve_sde_kernel}), this target is elementary and the objective is directly tractable. Equivalent reparameterisations predict the injected noise $\epsilon$ (DDPM's ``$\epsilon$-prediction''~\cite{Ho2020DDPM}) or the clean signal $\phi_{0}$.
+
+For the VE schedule adopted in this work, the conditional score reads
+\begin{equation}
+\nabla_{\phi_{t}}\log p_{0t}\bigl(\phi_{t}\,\bigl|\,\phi_{0}\bigr) \;=\; -\frac{\phi_{t}-\phi_{0}}{\sigma^{2}(t)} \;=\; -\frac{\epsilon}{\sigma(t)},
+\label{eq:ve_cond_score}
+\end{equation}
+having used the reparameterisation $\phi_{t}=\phi_{0}+\sigma(t)\,\epsilon$ with $\epsilon\sim\mathcal{N}(0,\mathbb{1})$. The standard weighting $\lambda(t)=\sigma^{2}(t)$ equalises the signal-to-noise ratio along the diffusion trajectory. Substituting~\Eq{eq:ve_cond_score} into~\Eq{eq:dsm} with this weighting reduces the objective to
+\begin{equation}
+\mathcal{L}(\theta) \;=\; \mathbb{E}_{t,\,\phi_{0},\,\epsilon}\!\left[\bigl\|\sigma(t)\,s_{\theta}(\phi_{t},t)+\epsilon\bigr\|^{2}\right],
+\label{eq:dsm_loss_ve}
+\end{equation}
+the loss minimised in all subsequent training runs.
+
+Since $p_{0}=p_{\text{data}}$ by construction, the marginal satisfies $p_{t}\to p_{\text{data}}$ as $t\to 0$, and a converged network satisfies
+\begin{equation}
+s_{\theta}(\phi,t)\;\xrightarrow[t\to 0]{}\;\nabla_{\phi}\log p_{\text{data}}(\phi)\;=\;-\,\nabla_{\phi}S[\phi],
+\label{eq:score_small_t}
+\end{equation}
+where the final equality uses the Boltzmann form $p_{\text{data}}(\phi)\propto e^{-S[\phi]}$ of the target distribution. The small-$t$ limit of the learned score therefore reproduces the classical force $-\nabla_{\phi}S[\phi]$ of the action, as a byproduct of denoising-based training. The precision of this limit, and the sensitivity of the reverse samplers~\Eq{eq:reverse_sde} and~\Eq{eq:prob_flow_ode} to its residual error, underlie the diagnostics developed in \Sec{sec:acceptance} and \Sec{sec:score_quality}.
 
 
 \section{Critical point of 2D \texorpdfstring{$\phi^4$}{phi4} theory from Wolff + Fourier-accelerated HMC}
@@ -409,9 +435,9 @@ against the HMC reference, where $\tilde\phi(p)$ is the discrete Fourier transfo
 
 We consider three representative values of the hopping parameter that span the phase diagram:
 \begin{itemize}
-\item $\kappa = 0.26$ --- in the symmetric phase;
-\item $\kappa = 0.2705 \approx \kappa_c$ --- near the critical point;
-\item $\kappa = 0.28$ --- in the broken phase.
+\item $\kappa = 0.26$, in the symmetric phase;
+\item $\kappa = 0.2705 \approx \kappa_c$, near the critical point;
+\item $\kappa = 0.28$, in the broken phase.
 \end{itemize}
 
 %%% ---- NCSN++ Architecture Diagram ---- %%%
@@ -419,7 +445,7 @@ We consider three representative values of the hopping parameter that span the p
 \centering
 \includegraphics[width=\textwidth]{architecture_ncsnpp.pdf}
 \caption{Architecture of the NCSN++ score network used for both 2D and 3D $\phi^4$ lattice field theory.
-\textbf{(a)}~U-Net overview. The encoder (blue) consists of four ResBlock pairs at progressively coarser resolutions, separated by stride-2 convolutions (purple) that halve the spatial dimensions. The decoder (orange) mirrors this structure, upsampling via nearest-neighbor interpolation followed by a convolution (purple). Each encoder level provides two skip connections---from both sub-blocks---to the corresponding decoder level via channel concatenation (``concat~$\times 2$''). The diffusion time~$t$ is encoded by Gaussian Fourier projection (GFP) and a learned MLP, then injected additively into every ResBlock. The final output is divided by~$\sigma(t)$.
+\textbf{(a)}~U-Net overview. The encoder (blue) consists of four ResBlock pairs at progressively coarser resolutions, separated by stride-2 convolutions (purple) that halve the spatial dimensions. The decoder (orange) mirrors this structure, upsampling via nearest-neighbor interpolation followed by a convolution (purple). Each encoder level provides two skip connections (from both sub-blocks) to the corresponding decoder level via channel concatenation (``concat~$\times 2$''). The diffusion time~$t$ is encoded by Gaussian Fourier projection (GFP) and a learned MLP, then injected additively into every ResBlock. The final output is divided by~$\sigma(t)$.
 \textbf{(b)}~Internal structure of a single ResBlock; no residual connection is used. All convolutions use circular padding to enforce periodic boundary conditions.
 For 2D fields all convolutions are \texttt{Conv2d}; for 3D they become \texttt{Conv3d} ($D=3$).}
 \label{fig:architecture}
@@ -674,7 +700,7 @@ D_{\text{KL}}(p_{\text{train}}\|p_{\text{DM}}) = \sum_k D_k,\qquad
 D_k = \tfrac{1}{2}\bigl[r_k - 1 - \log r_k\bigr],\quad r_k=\tfrac{G_{\text{train}}(k)}{G_{\text{DM}}(k)}.
 \label{eq:per_mode_kl}
 \end{equation}
-The function $f(r)=r-1-\log r$ vanishes at $r=1$, is strictly convex, grows linearly as $r\to\infty$ (linear penalty for DM underestimating the variance) and only logarithmically as $r\to 0^+$ (weaker penalty for overestimation). For small relative deviations $r=1+\varepsilon$ one has $D_k\simeq\varepsilon^2/4$, so $D_k$ reduces to the usual quadratic relative-deviation measure in the well-trained regime, but is far tamer than $(r-1)^2$ for large mismatches in the UV tail. Because $D_k$ is dimensionless and additive, contributions from different $|k|$-bins---and hence UV vs IR halves---can be compared and summed on equal footing.
+The function $f(r)=r-1-\log r$ vanishes at $r=1$, is strictly convex, grows linearly as $r\to\infty$ (linear penalty for DM underestimating the variance) and only logarithmically as $r\to 0^+$ (weaker penalty for overestimation). For small relative deviations $r=1+\varepsilon$ one has $D_k\simeq\varepsilon^2/4$, so $D_k$ reduces to the usual quadratic relative-deviation measure in the well-trained regime, but is far tamer than $(r-1)^2$ for large mismatches in the UV tail. Because $D_k$ is dimensionless and additive, contributions from different $|k|$-bins (and hence UV vs IR halves) can be compared and summed on equal footing.
 
 Crucially, \eq{eq:per_mode_kl} is the KL between two \emph{Gaussian surrogates} determined by the two-point functions alone. When the underlying field theory is non-Gaussian (as in $\phi^4$ with interactions), the metric captures the second-moment mismatch but is blind to higher-cumulant structure such as the connected four-point function $\langle\phi^4\rangle_{\text{conn}}$; matching the two-point function is a necessary but not sufficient condition for distributional equivalence. The generalisation $D_{\text{KL}}(p\|q_{\text{Gauss}})=D_{\text{KL}}(p_{\text{Gauss}}\|q_{\text{Gauss}})+J(p)$, with $J(p)\ge 0$ the negentropy of the true distribution, makes the missing piece explicit.
 
@@ -693,6 +719,28 @@ w_k = k^{D-1}\bigl[G_{\text{DM}}(k)-G_{\text{train}}(k)\bigr]
 \label{eq:ps_weighted_delta}
 \end{equation}
 measures, up to an overall $(2\pi)^{-D}$ factor, how much each momentum shell contributes to the total mismatch in $\langle\phi^2\rangle$. Integrating $w_k$ over a UV or IR band directly quantifies the corresponding contribution to the two-point mismatch in position space, with physical units. Compared to $D_k$ and $z_k$, $w_k$ has a concrete physical interpretation but is not dimensionless, so the three metrics should be viewed as complementary rather than redundant.
+
+\paragraph{Aggregate scalars.}
+Each per-mode quantity above also admits a single-scalar summary. These scalars are convenient training diagnostics, one number per checkpoint.
+\begin{align}
+D_{\mathrm{tot}} &= \sum_k D_k,
+  \label{eq:Dtot}\\
+L_1^{\mathrm{pw}} &= \sum_k k^{D-1}\bigl|G_{\mathrm{DM}}(k)-G_{\mathrm{train}}(k)\bigr|,
+  \label{eq:L1pw}\\
+R_{\mathrm{var}} &= \frac{\sum_k G_{\mathrm{DM}}(k)}{\sum_k G_{\mathrm{train}}(k)}.
+  \label{eq:Rvar}
+\end{align}
+$D_{\mathrm{tot}}$ is the Gaussian-surrogate KL of \Eq{eq:per_mode_kl} summed over bins, and inherits its ratio-based scale invariance. $L_1^{\mathrm{pw}}$ is the $L_1$ norm of the phase-space-weighted density $w_k$ of \Eq{eq:ps_weighted_delta}, and by Parseval's relation controls the absolute $\langle\phi^2\rangle$ mismatch in physical units. $R_{\mathrm{var}}$ is the total-variance ratio, tracked directly rather than via $|R_{\mathrm{var}}-1|$ because its signed deviation records whether the model underestimates or overestimates the bulk variance at each training stage. The three scalars carry complementary information. $D_{\mathrm{tot}}$ is insensitive to a uniform rescaling of $G$ that $R_{\mathrm{var}}$ catches immediately. $L_1^{\mathrm{pw}}$ weights mid-$k$ modes most strongly and is the closest of the three to a perceptual summary.
+
+\paragraph{Perceptual benchmark: FID.}
+For image data we cross-check the spectral diagnostics against the Fréchet Inception Distance (FID) \cite{Heusel2017FID}. Passing a sample set through the Inception-v3 network yields $d=2048$-dimensional activations; fitting a Gaussian $\mathcal{N}(\mu, \Sigma)$ to these activations for both the DM and training samples, FID is the Fréchet distance between the two Gaussians
+\begin{equation}
+\mathrm{FID} = \|\mu_{\mathrm{DM}}-\mu_{\mathrm{train}}\|^2
+  + \mathrm{tr}\!\left[\Sigma_{\mathrm{DM}}+\Sigma_{\mathrm{train}}
+    -2\bigl(\Sigma_{\mathrm{DM}}\Sigma_{\mathrm{train}}\bigr)^{1/2}\right],
+\label{eq:fid}
+\end{equation}
+which, like $D_{\mathrm{tot}}$, is a Gaussian KL up to a monotone rescaling but in perceptual Inception-feature space rather than in momentum space. Comparing FID across training with the spectral scalars in \Eqs{eq:Dtot}{eq:Rvar} tests how much perceptual and physical-spectrum quality track each other.
 
 \paragraph{Illustration on CelebA $64\times64$.}
 \fig{fig:diag_celeba64} applies these three diagnostics to a NCSN++ diffusion model trained on CelebA grayscale $64\times64$ images, using log-spaced checkpoints from epoch~1 to epoch~$10{,}000$. Each checkpoint supplies $N=512$ EM-sampled images; the reference $G_{\text{train}}$ is computed from $50{,}000$ training images, so $\sigma_{\text{train}}\ll\sigma_{\text{DM}}$ and the DM sample size dominates the bootstrap uncertainty. All three metrics display the expected monotonic improvement during training: the per-mode KL drops by nearly two orders of magnitude at all $|k|$, the $z$-score envelope contracts toward the $\pm 2\sigma$ band, and the phase-space weighted difference $w_k$ shrinks and changes sign as the model passes from underestimating to slightly overestimating the low-$k$ power. The UV (large-$|k|$) portion dominates the total KL throughout training, consistent with the difficulty of learning high-frequency image modes.

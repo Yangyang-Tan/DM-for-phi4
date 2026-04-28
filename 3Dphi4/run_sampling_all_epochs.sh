@@ -5,7 +5,7 @@
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null || source ~/anaconda3/etc/profile.d/conda.sh 2>/dev/null || source ~/miniforge3/etc/profile.d/conda.sh 2>/dev/null
 conda activate nenv2
 
-cd /data/tyy/DM/3Dphi4
+cd /data/tyywork/DM/3Dphi4
 
 EPOCHS=("epoch=0599" "epoch=0699" "epoch=0799")
 

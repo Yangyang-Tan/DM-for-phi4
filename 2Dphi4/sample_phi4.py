@@ -135,6 +135,11 @@ def main():
                         help="ODE solver when --method=ode (default dpm2)")
     parser.add_argument("--n_repeats", type=int, default=4,
                         help="Number of independent sampling passes to concatenate")
+    parser.add_argument("--seed", type=int, default=None,
+                        help="If set, seeds torch/cuda RNG before each sampling pass. "
+                             "Fixes both the initial noise x_T and all per-step noise "
+                             "in SDE reverse integration, giving identical trajectories "
+                             "across calls. Repeats use seed, seed+1, ... (deterministic).")
     args = parser.parse_args()
 
     run_dir = f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
@@ -179,14 +184,27 @@ def main():
 
     # Sample
     print(f"Sampling ({args.method.upper()})  num_steps={args.num_steps}  n_repeats={args.n_repeats}  num_samples/rep={args.num_samples}")
+    if args.seed is not None:
+        print(f"Seed: {args.seed} (fixed IC + reverse-step noise)")
+
+    def _seed_for(rep_idx):
+        if args.seed is not None:
+            s = args.seed + rep_idx
+            torch.manual_seed(s)
+            torch.cuda.manual_seed_all(s)
+
     if args.method == "em":
-        reps = [model.sample(args.num_samples, args.num_steps, schedule='log')
-                for _ in range(args.n_repeats)]
+        reps = []
+        for i in range(args.n_repeats):
+            _seed_for(i)
+            reps.append(model.sample(args.num_samples, args.num_steps, schedule='log'))
         samples = torch.concatenate(reps, axis=0)
     elif args.method == "ode":
-        reps = [model.sample_ode(args.num_samples, args.num_steps,
-                                 schedule='log', method=args.ode_method)
-                for _ in range(args.n_repeats)]
+        reps = []
+        for i in range(args.n_repeats):
+            _seed_for(i)
+            reps.append(model.sample_ode(args.num_samples, args.num_steps,
+                                         schedule='log', method=args.ode_method))
         samples = torch.concatenate(reps, axis=0)
     elif args.method == "em2":
         samples = model.sample2(args.num_samples, args.num_steps)

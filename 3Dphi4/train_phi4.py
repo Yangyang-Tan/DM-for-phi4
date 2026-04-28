@@ -49,7 +49,7 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=64, help="Batch size (smaller for 3D due to memory)")
     parser.add_argument("--epochs", type=int, default=20000, help="Number of epochs")
-    parser.add_argument("--ema_start", type=int, default=1000, help="Start EMA after this epoch")
+    parser.add_argument("--ema_start", type=int, default=0, help="Start EMA after this epoch")
     parser.add_argument("--device", type=str, default="cuda:0", help="GPU device")
     parser.add_argument("--data_path", type=str, default=None, help="Path to data file")
     parser.add_argument("--ckpt_path", type=str, default=None, help="Path to checkpoint for resuming training")

@@ -195,69 +195,53 @@ class DiffusionModel(pl.LightningModule):
         device = self.device
         with self.ema.average_parameters():
             time_steps = self._build_time_steps(num_steps, eps, schedule, device)
-
-            # Precompute σ(t) for all time steps
             sigma_steps = torch.stack(
-                [self.marginal_prob_std_fn(t) for t in time_steps])
+                [self.marginal_prob_std_fn(t) for t in time_steps]).tolist()
+            time_steps_f = time_steps.tolist()
 
-            init_std = sigma_steps[0]
-            x = torch.randn(num_samples, 1, self.L, self.L, device=device) * init_std
+            x = torch.randn(num_samples, 1, self.L, self.L,
+                            device=device) * sigma_steps[0]
             batch_t = torch.empty(num_samples, device=device)
 
-            def noise_pred(x, t_val):
+            def noise_pred(x, t_val, sigma_t):
                 """ε_θ(x, t) = -σ(t) · score(x, t)"""
                 batch_t.fill_(t_val)
-                score = self(x, batch_t)
-                sigma_t = self.marginal_prob_std_fn(
-                    torch.tensor(t_val, device=device))
-                return -sigma_t * score
+                return -sigma_t * self(x, batch_t)
 
             for i in tqdm(range(num_steps), desc=f"Sampling (DPM-{method[-1]})"):
                 sigma_s = sigma_steps[i]
                 sigma_next = sigma_steps[i + 1]
-                t_s = time_steps[i].item()
+                t_s = time_steps_f[i]
 
-                eps_s = noise_pred(x, t_s)
+                eps_s = noise_pred(x, t_s, sigma_s)
 
                 if method == 'dpm1':
                     # DPM-Solver-1: x_next = x + (σ_next - σ_s) · ε_θ
                     x = x + (sigma_next - sigma_s) * eps_s
 
                 elif method == 'dpm2':
-                    # DPM-Solver-2 (midpoint): 2nd order, 2 NFE/step
-                    # Midpoint in σ-space (geometric mean)
-                    sigma_mid = torch.sqrt(sigma_s * sigma_next)
-                    t_mid = self._sigma_to_t(sigma_mid.item())
-
-                    # Half step to midpoint
+                    # DPM-Solver-2 (midpoint): geometric mean in σ-space
+                    sigma_mid = (sigma_s * sigma_next) ** 0.5
+                    t_mid = self._sigma_to_t(sigma_mid)
                     x_mid = x + (sigma_mid - sigma_s) * eps_s
-
-                    # Evaluate at midpoint
-                    eps_mid = noise_pred(x_mid, t_mid)
-
-                    # Full step using midpoint noise prediction
+                    eps_mid = noise_pred(x_mid, t_mid, sigma_mid)
                     x = x + (sigma_next - sigma_s) * eps_mid
 
                 elif method == 'dpm3':
-                    # DPM-Solver-3: 3rd order, 3 NFE/step
-                    # Two intermediate points at 1/3 and 2/3
-                    sigma_s_val = sigma_s.item()
-                    sigma_next_val = sigma_next.item()
-                    sigma_1 = sigma_s_val ** (2/3) * sigma_next_val ** (1/3)
-                    sigma_2 = sigma_s_val ** (1/3) * sigma_next_val ** (2/3)
+                    # DPM-Solver-3: intermediates at 1/3 and 2/3 in σ-space
+                    sigma_1 = sigma_s ** (2/3) * sigma_next ** (1/3)
+                    sigma_2 = sigma_s ** (1/3) * sigma_next ** (2/3)
                     t_1 = self._sigma_to_t(sigma_1)
                     t_2 = self._sigma_to_t(sigma_2)
 
-                    # Step to 1/3 point
-                    x_1 = x + (sigma_1 - sigma_s_val) * eps_s
-                    eps_1 = noise_pred(x_1, t_1)
+                    x_1 = x + (sigma_1 - sigma_s) * eps_s
+                    eps_1 = noise_pred(x_1, t_1, sigma_1)
 
-                    # Step to 2/3 point using corrected estimate
-                    x_2 = x + (sigma_2 - sigma_s_val) * (2 * eps_1 - eps_s)
-                    eps_2 = noise_pred(x_2, t_2)
+                    x_2 = x + (sigma_2 - sigma_s) * (2 * eps_1 - eps_s)
+                    eps_2 = noise_pred(x_2, t_2, sigma_2)
 
-                    # Full step using Simpson-like combination
-                    x = x + (sigma_next_val - sigma_s_val) * (
+                    # Simpson-like combination
+                    x = x + (sigma_next - sigma_s) * (
                         eps_s / 6 + 2 * eps_1 / 3 + eps_2 / 6)
 
         return x

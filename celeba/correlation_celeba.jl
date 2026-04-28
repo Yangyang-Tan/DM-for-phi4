@@ -30,9 +30,9 @@ function train_data_path(L::Int, network::String)
 end
 
 function dm_sample_path(L::Int, network::String, epoch::String;
-                        subdir::String="data")
+                        method::Symbol=:em, subdir::String="data")
     joinpath(celeba_model_dir(L, network),
-             subdir, "samples_epoch=epoch=$(epoch).npy")
+             subdir, "samples_$(method)_epoch=$(epoch).npy")
 end
 
 function correlation_dir(L::Int, network::String)
@@ -41,12 +41,14 @@ function correlation_dir(L::Int, network::String)
     return dir
 end
 
-function discover_epochs(L::Int, network::String; subdir::String="data")
+function discover_epochs(L::Int, network::String;
+                         method::Symbol=:em, subdir::String="data")
     dir = joinpath(celeba_model_dir(L, network), subdir)
     isdir(dir) || return String[]
+    pat = Regex("^samples_$(method)_epoch=(\\d+)\\.npy\$")
     epochs = String[]
     for f in readdir(dir)
-        m = match(r"^samples_epoch=epoch=(\d+)\.npy$", f)
+        m = match(pat, f)
         m !== nothing && push!(epochs, m.captures[1])
     end
     return sort(epochs)
@@ -59,6 +61,7 @@ end
 function compute_propagators(;
         L::Int,
         network::String      = "ncsnpp",
+        method::Symbol       = :em,
         epoch_list::Union{Vector{String}, Nothing} = nothing,
         data_subdir::String  = "data",
         direction::Symbol    = :radial,
@@ -68,7 +71,7 @@ function compute_propagators(;
 
     dir_label = direction == :radial ? "radial" : string(direction)
     println("\n", "="^60)
-    println("  CelebA $(L)x$(L), network=$network, direction=$dir_label")
+    println("  CelebA $(L)x$(L), network=$network, method=$method, direction=$dir_label")
     println("="^60)
 
     # ── Training data (reference) — use cache if available ──────
@@ -103,7 +106,8 @@ function compute_propagators(;
 
     # ── Discover / validate epoch list ───────────────────────────
     if epoch_list === nothing
-        epoch_list = discover_epochs(L, network; subdir=data_subdir)
+        epoch_list = discover_epochs(L, network;
+                                     method=method, subdir=data_subdir)
     end
     if isempty(epoch_list)
         @warn "No DM sample files found"
@@ -118,14 +122,15 @@ function compute_propagators(;
         p = plot(k_train[2:end], G_train[2:end]; yerr=G_train_err[2:end],
                  seriestype=:scatter, xaxis=:log,
                  xlabel="|k|", ylabel="G(k)",
-                 title="CelebA $(L)×$(L) — $(network) ($(dir_label))",
+                 title="CelebA $(L)×$(L) — $(network)/$(method) ($(dir_label))",
                  label="Training", markerstrokecolor=:auto, legend=:topright)
     end
 
     dm_results = Dict{String, NamedTuple}()
 
     for epoch in epoch_list
-        fpath = dm_sample_path(L, network, epoch; subdir=data_subdir)
+        fpath = dm_sample_path(L, network, epoch;
+                               method=method, subdir=data_subdir)
         if !isfile(fpath)
             @warn "File not found, skipping" path=fpath
             continue
@@ -140,8 +145,9 @@ function compute_propagators(;
 
         if save
             outdir = correlation_dir(L, network)
-            writedlm(joinpath(outdir, "G_k_DM_celeba_$(L)$(dir_suffix)_epoch=$(epoch).dat"),
-                     [k_dm G_dm G_dm_err])
+            writedlm(joinpath(outdir,
+                "G_k_DM_celeba_$(L)_$(method)$(dir_suffix)_epoch=$(epoch).dat"),
+                [k_dm G_dm G_dm_err])
         end
 
         if do_plot
@@ -151,13 +157,11 @@ function compute_propagators(;
         end
     end
 
-    if do_plot
-        display(p)
-        if save
-            outdir = correlation_dir(L, network)
-            savefig(p, joinpath(outdir, "propagator_celeba_$(L)$(dir_suffix).pdf"))
-            println("  ✓ Saved plot")
-        end
+    if do_plot && save
+        outdir = correlation_dir(L, network)
+        savefig(p, joinpath(outdir,
+            "propagator_celeba_$(L)_$(method)$(dir_suffix).pdf"))
+        println("  ✓ Saved plot")
     end
 
     return (k_vals=k_train, G_train=G_train, G_train_err=G_train_err,
@@ -178,6 +182,7 @@ function compute_merged_propagator(;
         L::Int,
         network::String,
         epoch_list::Vector{String},
+        method::Symbol           = :em,
         label::String            = "merged",
         data_subdir::String      = "data",
         direction::Symbol        = :radial,
@@ -190,7 +195,8 @@ function compute_merged_propagator(;
 
     all_cfgs = []
     for epoch in epoch_list
-        fpath = dm_sample_path(L, network, epoch; subdir=data_subdir)
+        fpath = dm_sample_path(L, network, epoch;
+                               method=method, subdir=data_subdir)
         isfile(fpath) || continue
         cfgs = npzread(fpath)
         push!(all_cfgs, cfgs)
@@ -208,8 +214,9 @@ function compute_merged_propagator(;
 
     if save
         outdir = correlation_dir(L, network)
-        writedlm(joinpath(outdir, "G_k_DM_celeba_$(L)$(dir_suffix)_$(label).dat"),
-                 [k_vals G_mean G_err])
+        writedlm(joinpath(outdir,
+            "G_k_DM_celeba_$(L)_$(method)$(dir_suffix)_$(label).dat"),
+            [k_vals G_mean G_err])
     end
 
     return (k_vals=k_vals, G_mean=G_mean, G_err=G_err)
@@ -232,6 +239,7 @@ Example:
 function compute_sliding_window(;
         L::Int,
         network::String      = "ncsnpp",
+        method::Symbol       = :em,
         data_subdir::String  = "data",
         direction::Symbol    = :radial,
         window_radius::Int   = 2,
@@ -242,7 +250,7 @@ function compute_sliding_window(;
     dir_suffix = direction == :radial ? "" : "_$(dir_label)"
 
     println("\n", "="^60)
-    println("  Sliding window: CelebA $(L)×$(L), network=$network")
+    println("  Sliding window: CelebA $(L)×$(L), network=$network, method=$method")
     println("  window_radius=$window_radius, direction=$dir_label")
     println("="^60)
 
@@ -263,7 +271,7 @@ function compute_sliding_window(;
     end
 
     # Discover all epochs and sort numerically
-    all_epochs = discover_epochs(L, network; subdir=data_subdir)
+    all_epochs = discover_epochs(L, network; method=method, subdir=data_subdir)
     isempty(all_epochs) && (@warn "No sample files"; return nothing)
     epoch_nums = parse.(Int, all_epochs)
     sorted_idx = sortperm(epoch_nums)
@@ -281,7 +289,8 @@ function compute_sliding_window(;
 
         all_cfgs = []
         for we in window_epochs
-            fpath = dm_sample_path(L, network, we; subdir=data_subdir)
+            fpath = dm_sample_path(L, network, we;
+                                   method=method, subdir=data_subdir)
             isfile(fpath) || continue
             push!(all_cfgs, npzread(fpath))
         end
@@ -298,7 +307,7 @@ function compute_sliding_window(;
 
         if save
             writedlm(joinpath(outdir,
-                "G_k_DM_celeba_$(L)$(dir_suffix)_sw$(window_radius)_epoch=$(epoch).dat"),
+                "G_k_DM_celeba_$(L)_$(method)$(dir_suffix)_sw$(window_radius)_epoch=$(epoch).dat"),
                 [k_dm G_dm G_dm_err])
         end
         println("  epoch=$(epoch): window=[$(all_epochs[lo])..$(all_epochs[hi])], N=$N_total")
@@ -307,16 +316,17 @@ function compute_sliding_window(;
     # Plot: pick representative k-bins and show G(k) vs epoch
     if do_plot && !isempty(results)
         sorted_eps = sort(collect(keys(results)))
-        # epoch=0000 in checkpoint = 1st epoch of training
+        # Lightning's `epoch=NNNN.ckpt` is saved at the END of training epoch N;
+        # the +1 shift converts to "epochs completed" and keeps epoch=0000
+        # visible on a log x-axis.
         plot_epochs = sorted_eps .+ 1
         nb = length(first(values(results)).k_vals)
 
-        # Include the 3 lowest nonzero-k bins (indices 2,3,4) plus mid and high-k
         # Skip index 1 (k=0): G(k=0)=0 by construction (subtract_mean=true)
         k_indices = unique(clamp.([2, 3, 4, nb÷4, nb÷2, nb-1], 2, nb))
 
-        p = plot(xlabel="Epoch", ylabel="G(k) / G_train(k)",
-                 title="CelebA $(L)×$(L) — Propagator evolution ($(dir_label), window=$window_radius)",
+        p = plot(xlabel="Epochs completed", ylabel="G(k) / G_train(k)",
+                 title="CelebA $(L)×$(L) — Propagator evolution ($(method), $(dir_label), window=$window_radius)",
                  legend=:topright)
 
         for ki in k_indices
@@ -332,10 +342,9 @@ function compute_sliding_window(;
         end
         hline!(p, [1.0]; linestyle=:dash, color=:gray, label="")
 
-        display(p)
         if save
             savefig(p, joinpath(outdir,
-                "propagator_evolution_celeba_$(L)$(dir_suffix)_sw$(window_radius).pdf"))
+                "propagator_evolution_celeba_$(L)_$(method)$(dir_suffix)_sw$(window_radius).pdf"))
             println("  ✓ Saved evolution plot")
         end
     end
@@ -347,22 +356,27 @@ end
 #  Parameter sets
 # ═══════════════════════════════════════════════════════════════════
 
-param_sets = [
-    (L=128,  network="ncsnpp", epoch_list=["0002","0009","0024","0049","0099","0999"], data_subdir="data", direction=:x),
-    # (L=128, network="ncsnpp", epoch_list=nothing, data_subdir="data", direction=:radial),
-    # (L=128, network="ncsnpp", epoch_list=nothing, data_subdir="data", direction=:x),
-    # (L=128, network="ncsnpp", epoch_list=nothing, data_subdir="data", direction=:y),
-    # (L=128, network="ncsnpp", epoch_list=nothing, data_subdir="data", direction=:diagonal),
-]
+directions = [:radial, :x, :y]
+
+param_sets = vec([
+    (L=L, network="ncsnpp", method=method,
+     epoch_list=nothing, data_subdir="data", direction=dir)
+    for L in (64, 128), method in (:em, :dpm2), dir in directions
+])
 
 for ps in param_sets
     compute_propagators(;
         L           = ps.L,
         network     = ps.network,
+        method      = ps.method,
         epoch_list  = ps.epoch_list,
         data_subdir = ps.data_subdir,
         direction   = ps.direction,
     )
 end
 
-compute_sliding_window(L=128, network="ncsnpp", window_radius=2,direction=:x)
+# Sliding-window propagator evolution (G(k)/G_train vs epoch per k-bin)
+for L in (64, 128), method in (:em, :dpm2), dir in directions
+    compute_sliding_window(L=L, network="ncsnpp", method=method,
+                           window_radius=2, direction=dir)
+end

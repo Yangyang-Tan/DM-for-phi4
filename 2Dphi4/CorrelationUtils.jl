@@ -200,13 +200,22 @@ end
 """
     propagator_radial_bootstrap(cfgs::AbstractArray;
         n_boot=1000, subtract_mean=true, max_diagonality=0.51,
-        direction=:radial, seed=nothing)
+        direction=:radial, seed=nothing,
+        use_bootstrap=false, max_chunk_bytes=2_000_000_000)
 
-Momentum propagator with bootstrap error bars.
+Momentum propagator with error bars on the per-bin mean `G(k)`.
 Returns `(k_vals, G_mean, G_err)`.
 
 `direction`: `:radial` (default), `:x`, `:y`, or `:diagonal`.
 See `compute_momentum_bins` for details.
+
+`use_bootstrap=false` (default) uses the analytical SE `s/√N` with Bessel-
+corrected sample std. `use_bootstrap=true` uses a Monte-Carlo bootstrap of
+the mean with `n_boot` resamples per bin (slower and noisier; reach for it
+only to reproduce prior MC runs).
+
+`max_chunk_bytes` caps the batched-FFT complex buffer (one sample's complex
+power = V·16 bytes), so the routine handles arbitrary-N inputs.
 """
 function propagator_radial_bootstrap(cfgs::AbstractArray{T};
         n_boot::Int            = 1000,
@@ -214,6 +223,8 @@ function propagator_radial_bootstrap(cfgs::AbstractArray{T};
         max_diagonality::Float64 = 0.51,
         direction::Symbol      = :radial,
         seed::Union{Int,Nothing} = nothing,
+        use_bootstrap::Bool    = false,
+        max_chunk_bytes::Int   = 2_000_000_000,
     ) where T
 
     nd = ndims(cfgs)
@@ -228,26 +239,55 @@ function propagator_radial_bootstrap(cfgs::AbstractArray{T};
 
     G_rad = zeros(Float64, nb, N)
 
-    for i in 1:N
-        cfg = collect(selectdim(cfgs, nd, i))
+    # Chunk the sample axis so batched-FFT's complex buffer fits in memory:
+    # one sample's complex power uses V·16 bytes (ComplexF64).
+    chunk_N = max(1, div(max_chunk_bytes, 16 * V))
+
+    i_off = 0
+    while i_off < N
+        nsub = min(chunk_N, N - i_off)
+        chunk = Array{Float64}(selectdim(cfgs, nd, (i_off+1):(i_off+nsub)))
+
         if subtract_mean
-            cfg .-= mean(cfg)
+            for i in 1:nsub
+                slice = selectdim(chunk, nd, i)
+                slice .-= mean(slice)
+            end
         end
-        phi_k = fft(cfg) ./ sqrt(V)
-        G_rad[:, i] .= radial_average(abs2.(phi_k), bins)
+
+        # Batched FFT over the spatial dims; the sample axis is left intact.
+        phi_k = fft(chunk, 1:D)
+
+        inv_V = 1.0 / V
+        @inbounds for j in 1:nb
+            idxs  = bins.bin_indices[j]
+            scale = inv_V / length(idxs)
+            for ci in 1:nsub
+                s = 0.0
+                for idx in idxs
+                    s += abs2(phi_k[idx, ci])
+                end
+                G_rad[j, i_off + ci] = s * scale
+            end
+        end
+
+        i_off += nsub
     end
 
-    if seed !== nothing
-        Random.seed!(seed)
-    end
+    G_mean = vec(mean(G_rad; dims=2))
 
-    G_mean = zeros(Float64, nb)
-    G_err  = zeros(Float64, nb)
-
-    for j in 1:nb
-        bs = bootstrap(mean, G_rad[j, :], BasicSampling(n_boot))
-        G_mean[j] = bs.t0[1]
-        G_err[j]  = stderror(bs)[1]
+    if use_bootstrap
+        if seed !== nothing
+            Random.seed!(seed)
+        end
+        G_err = zeros(Float64, nb)
+        @inbounds for j in 1:nb
+            bs = bootstrap(mean, G_rad[j, :], BasicSampling(n_boot))
+            G_err[j] = stderror(bs)[1]
+        end
+    else
+        # Analytical bootstrap-of-mean SE: s/√N with Bessel-corrected s.
+        G_err = vec(std(G_rad; dims=2, corrected=true)) ./ sqrt(N)
     end
 
     return bins.k_vals, G_mean, G_err
