@@ -8,7 +8,6 @@
 - `train_phi4_multiL.py` — Multi-L joint training
 - `sample_phi4.py` / `sample_phi4_sweep.py` / `sample_phi4_crossL.py` — Sampling (EM/PC/MALA, multi-ckpt sweep, cross-L)
 - `sample_at_t0.py` — Sample evaluation at t=0
-- `multigrid_mala.py` — Multi-grid + MALA refinement sampling pipeline
 - `analysis/plot_loss_curves.py` — Loss decomposition plotting
 - All other data-analysis scripts live under `analysis/`
 
