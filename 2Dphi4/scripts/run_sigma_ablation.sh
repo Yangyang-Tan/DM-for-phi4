@@ -47,7 +47,7 @@ NUM_SAMPLES_PER_REP=1024
 N_REPEATS=4
 SAMPLE_EP=$EPOCHS   # use the final log-scale checkpoint (epoch=10000.ckpt)
 
-LOG_DIR="sigma_ablation_logs"
+LOG_DIR="results/sigma_ablation/all"
 mkdir -p "$LOG_DIR"
 
 for SIGMA in "${SIGMAS[@]}"; do

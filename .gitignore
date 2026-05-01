@@ -26,7 +26,7 @@ lightning_logs/
 
 # 2D phi4 大型子目录
 2Dphi4/trainingdata/
-2Dphi4/phi4_L*/
+2Dphi4/runs/
 2Dphi4/scan_kappa*/
 2Dphi4/lightning_logs/
 2Dphi4/old/
@@ -35,7 +35,7 @@ lightning_logs/
 
 # 3D phi4 大型子目录
 3Dphi4/trainingdata/
-3Dphi4/phi4_3d_L*/
+3Dphi4/runs/
 3Dphi4/scan_kappa*/
 3Dphi4/old/
 

@@ -137,7 +137,7 @@ def main():
     p.add_argument("--method", type=str, default="em")
     p.add_argument("--n_bins", type=int, default=16)
     p.add_argument("--max_diagonality", type=float, default=0.51)
-    p.add_argument("--out", type=str, default="crossL_logs/crossL_propagator.pdf")
+    p.add_argument("--out", type=str, default="results/crossL/crossL_propagator.pdf")
     args = p.parse_args()
 
     cases = [
@@ -155,7 +155,7 @@ def main():
     fig, axes = plt.subplots(2, 3, figsize=(17, 9))
 
     for col, (k, ep, label) in enumerate(cases):
-        run_dir = Path(f"phi4_L{args.L_train}_k{k}_l{args.l}_ncsnpp")
+        run_dir = Path(f"runs/phi4_L{args.L_train}_k{k}_l{args.l}_ncsnpp")
         ref_path = Path("trainingdata") / f"cfgs_wolff_fahmc_k={k}_l={args.l}_{L}^2.jld2"
 
         ref = load_hmc(ref_path)

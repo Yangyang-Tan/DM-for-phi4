@@ -135,7 +135,7 @@ def main():
                         help="Evaluate every N epochs (e.g. --every 500)")
     args = parser.parse_args()
 
-    model_dir = Path(f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}")
+    model_dir = Path(f"runs/phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}")
     ckpts = find_epoch_checkpoints(model_dir / "models")
     all_epochs = sorted(ckpts.keys())
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sweep all checkpoints of celeba_64_ncsnpp with a given method/device.
+# Sweep all checkpoints of runs/celeba_64_ncsnpp with a given method/device.
 # Usage: ./run_sweep.sh <device> <method> <num_steps> [epoch_list_file]
 # Example: ./run_sweep.sh cuda:3 em 2000 epochs_all.txt
 set -e
@@ -16,7 +16,7 @@ EPOCH_FILE=${4:-epochs_all.txt}
 SEED=${SEED:-20260417}
 NUM_SAMPLES=${NUM_SAMPLES:-512}
 
-LOG_DIR=celeba_64_ncsnpp/logs
+LOG_DIR=runs/celeba_64_ncsnpp/logs
 mkdir -p "$LOG_DIR"
 
 while IFS= read -r EP; do

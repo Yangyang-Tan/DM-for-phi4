@@ -85,7 +85,7 @@ def iter_npy(path, chunk=64):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ckpt_dir", default="phi4_3d_L64_k0.2_l0.9_ncsnpp")
+    ap.add_argument("--ckpt_dir", default="runs/phi4_3d_L64_k0.2_l0.9_ncsnpp")
     ap.add_argument("--hmc_path",
                     default="trainingdata/cfgs_wolff_fahmc_k=0.2_l=0.9_64^3.jld2")
     ap.add_argument("--data_subdir", default="data",

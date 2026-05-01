@@ -6,7 +6,7 @@ celeba_128_ncsnpp/correlation/G_k_*.dat convention: tab/whitespace-separated
 ASCII with 3 columns).
 
 Output layout:
-  sigma_comparison_L128/L128_k{k}_sigma{σ}/dat_cache/
+  results/sigma_comparison_L128/L128_k{k}_sigma{σ}/dat_cache/
       G_k_train.dat
       G_k_DM_em_epoch=NNNN.dat
       G_k_DM_ode_epoch=NNNN.dat
@@ -14,7 +14,7 @@ Output layout:
 import os, glob
 import numpy as np
 
-ROOT = "/data/tyywork/DM/2Dphi4/sigma_comparison_L128"
+ROOT = "/data/tyywork/DM/2Dphi4/results/sigma_comparison_L128"
 
 CFG = [
     ("0.2705", "sigma450"),

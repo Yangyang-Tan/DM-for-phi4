@@ -151,7 +151,7 @@ def main():
     base_dir = Path(".")
 
     # Auto-discover all (L, k) model directories
-    pattern = f"phi4_L*_k*_l{args.l}_{args.network}"
+    pattern = f"runs/phi4_L*_k*_l{args.l}_{args.network}"
     model_dirs = sorted(base_dir.glob(pattern))
     if not model_dirs:
         print(f"No directories matching {pattern}")

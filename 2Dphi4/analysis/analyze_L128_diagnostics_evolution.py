@@ -10,7 +10,7 @@ For each (k, method): produces a 3×2-panel figure:
   col 1   = diagnostic vs |k|, all epochs overlaid, color-coded by epoch
 
 Reuses propagators cached by analyze_L128_sweep.py in
-  sigma_comparison_L128/L128_k{k}_sigma{σ}/prop_cache/*.npz
+  results/sigma_comparison_L128/L128_k{k}_sigma{σ}/prop_cache/*.npz
 """
 import os, glob
 from collections import OrderedDict
@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 ROOT = "/data/tyywork/DM/2Dphi4"
-OUT_ROOT = f"{ROOT}/sigma_comparison_L128"
+OUT_ROOT = f"{ROOT}/results/sigma_comparison_L128"
 
 CFG = [
     dict(k=0.2705, sigma=450, phase="near-critical"),

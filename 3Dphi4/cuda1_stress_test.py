@@ -12,7 +12,7 @@ from networks_3d import NCSNpp3D
 from diffusion_lightning_3d import DiffusionModel3D, marginal_prob_std
 
 DEVICE = 'cuda:1'
-CKPT = 'phi4_3d_L32_k0.1923_l0.9_ncsnpp/models/epoch=10000.ckpt'
+CKPT = 'runs/phi4_3d_L32_k0.1923_l0.9_ncsnpp/models/epoch=10000.ckpt'
 SIGMA = 750.0
 
 def gpu_stat():

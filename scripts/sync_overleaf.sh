@@ -1,14 +1,14 @@
 #!/bin/bash
 # Sync between draft/ and overleaf/ (Overleaf git repo)
-# Usage:
-#   ./sync_overleaf.sh push   — draft -> Overleaf
-#   ./sync_overleaf.sh pull   — Overleaf -> draft
+# Usage (run from DM repo root):
+#   bash scripts/sync_overleaf.sh push   — draft -> Overleaf
+#   bash scripts/sync_overleaf.sh pull   — Overleaf -> draft
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DRAFT="$SCRIPT_DIR/draft"
-OVERLEAF="$SCRIPT_DIR/overleaf"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DRAFT="$REPO_ROOT/draft"
+OVERLEAF="$REPO_ROOT/overleaf"
 
 if [ ! -d "$OVERLEAF/.git" ]; then
     echo "Error: $OVERLEAF is not a git repo. Clone Overleaf first."

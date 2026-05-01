@@ -7,7 +7,7 @@ For each k in {0.2705, 0.28}, method in {em, ode}:
   - Produce 4-panel end-of-training comparison at ep=10000 (like CelebA)
   - Produce multi-epoch evolution curves
 
-Outputs under sigma_comparison_L128/L128_{k}_{method}/.
+Outputs under results/sigma_comparison_L128/L128_{k}_{method}/.
 """
 import os, glob
 from collections import OrderedDict
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 ROOT = "/data/tyywork/DM/2Dphi4"
-OUT_ROOT = f"{ROOT}/sigma_comparison_L128"
+OUT_ROOT = f"{ROOT}/results/sigma_comparison_L128"
 os.makedirs(OUT_ROOT, exist_ok=True)
 
 # matches sample_phi4_sweep.py DEFAULT_EPOCHS
@@ -41,7 +41,7 @@ def load_train(k):
 
 def load_gen(k, sigma, method, ep):
     steps = 2000 if method == "em" else 400
-    path = (f"{ROOT}/phi4_L128_k{k}_l0.022_ncsnpp_sigma{sigma}"
+    path = (f"{ROOT}/runs/phi4_L128_k{k}_l0.022_ncsnpp_sigma{sigma}"
             f"/data/samples_{method}_steps{steps}_epoch={ep}.npy")
     if not os.path.isfile(path):
         return None

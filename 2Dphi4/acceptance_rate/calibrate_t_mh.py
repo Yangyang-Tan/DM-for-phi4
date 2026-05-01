@@ -142,7 +142,7 @@ def main():
     parser.add_argument("--data_path", type=str, default=None)
     args = parser.parse_args()
 
-    model_dir = Path(f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}")
+    model_dir = Path(f"runs/phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}")
     ckpts = find_epoch_checkpoints(model_dir / "models")
     epochs = sorted(ckpts.keys())
 

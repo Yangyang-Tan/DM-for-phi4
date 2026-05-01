@@ -44,7 +44,7 @@ def main():
     args = parser.parse_args()
 
     L = args.image_size
-    model_dir = f"celeba_{L}_{args.network}"
+    model_dir = f"runs/celeba_{L}_{args.network}"
 
     # Auto-discover checkpoint
     if args.checkpoint is None:

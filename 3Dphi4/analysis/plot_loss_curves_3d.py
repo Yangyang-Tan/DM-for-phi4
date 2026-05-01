@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorboard.backend.event_processing import event_accumulator
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(BASE, "..", "draft", "figures", "3Dphi4")
 
 L_TARGET = 64
@@ -33,7 +33,7 @@ LABELS_K = {
 
 
 def model_dir(k):
-    return os.path.join(BASE, f"phi4_3d_L{L_TARGET}_k{k}_l{LAMBDA}_ncsnpp")
+    return os.path.join(BASE, f"runs/phi4_3d_L{L_TARGET}_k{k}_l{LAMBDA}_ncsnpp")
 
 
 def latest_version(log_dir):

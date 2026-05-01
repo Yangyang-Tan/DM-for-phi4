@@ -241,7 +241,7 @@ def main():
     )
     # config selection
     parser.add_argument("--base_dir", type=str,
-                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runs"))
     parser.add_argument("--L", type=int, nargs="+", default=None,
                         help="Lattice sizes to include (default: all)")
     parser.add_argument("--k", type=float, nargs="+", default=None,

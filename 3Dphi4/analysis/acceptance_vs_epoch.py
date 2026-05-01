@@ -7,12 +7,13 @@ Usage:
 """
 
 import sys
-sys.path.append("..")
-
 import re
 import functools
 import argparse
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))   # 3Dphi4/
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))  # repo root
 
 import io
 
@@ -125,7 +126,7 @@ def main():
     parser.add_argument("--every", type=int, default=None)
     args = parser.parse_args()
 
-    model_dir = Path(f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}")
+    model_dir = Path(f"runs/phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}")
     ckpts = find_epoch_checkpoints(model_dir / "models")
     all_epochs = sorted(ckpts.keys())
 

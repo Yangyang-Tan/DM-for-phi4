@@ -9,20 +9,20 @@ from analyze_L64_3d_sweep import (build_bins_3d, compute_propagator_3d,
                                    load_train)
 
 ROOT = "/data/tyywork/DM/3Dphi4"
-cache = f"{ROOT}/sigma_comparison_3D/L64_k0.2_sigma2760/prop_cache"
+cache = f"{ROOT}/results/sigma_comparison_3D/L64_k0.2_sigma2760/prop_cache"
 
 # Load cached train + em_log
 d = np.load(f"{cache}/train.npz"); kv, Gt, Gte = d["k"], d["G"], d["Ge"]
 d = np.load(f"{cache}/em_ep10000.npz"); G_log, Ge_log = d["G"], d["Ge"]
 
 # Load linear sample and compute propagator
-gen_lin = np.load(f"{ROOT}/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data"
+gen_lin = np.load(f"{ROOT}/runs/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data"
                   "/samples_em_linear_steps2000_epoch=10000.npy").astype(np.float32)
 print(f"linear gen shape={gen_lin.shape}  range=[{gen_lin.min():+.3f},{gen_lin.max():+.3f}]")
 
 # moments
 print("\n── moments ──")
-gen_log = np.load(f"{ROOT}/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data"
+gen_log = np.load(f"{ROOT}/runs/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data"
                   "/samples_em_steps2000_epoch=10000.npy").astype(np.float32)
 train = load_train()[..., :2048]
 
@@ -99,7 +99,7 @@ ax.set_xlabel("|k|"); ax.set_ylabel("D_k")
 ax.set_title("per-mode Gaussian KL"); ax.legend(); ax.grid(alpha=0.3)
 
 plt.tight_layout()
-out = f"{ROOT}/sigma_comparison_3D/L64_k0.2_sigma2760/linear_vs_log_ep10000.png"
+out = f"{ROOT}/results/sigma_comparison_3D/L64_k0.2_sigma2760/linear_vs_log_ep10000.png"
 plt.savefig(out, dpi=120, bbox_inches="tight")
 plt.savefig(out.replace(".png", ".pdf"), bbox_inches="tight")
 print(f"\nsaved {out}")

@@ -92,7 +92,7 @@ def main():
     print(f"Stopping times: {t0_list}")
 
     if args.checkpoint is None:
-        ckpts = sorted(Path(f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}/models").glob(f"*{args.ep}*.ckpt"))
+        ckpts = sorted(Path(f"runs/phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}/models").glob(f"*{args.ep}*.ckpt"))
         args.checkpoint = str(ckpts[-1]) if ckpts else None
     print(f"Checkpoint: {args.checkpoint}")
 
@@ -114,7 +114,7 @@ def main():
     model = DiffusionModel.load_from_checkpoint(args.checkpoint, score_model=score_model)
     model = model.to(args.device).eval()
 
-    out_dir = Path(f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}/data_t0")
+    out_dir = Path(f"runs/phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}/data_t0")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     all_snapshots = {t0: [] for t0 in t0_list}

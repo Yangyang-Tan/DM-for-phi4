@@ -61,11 +61,20 @@ def main():
     p.add_argument("--device", type=str, default="cuda:2")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--plot_grid", type=int, default=4)
+    p.add_argument("--run_dir", type=str, default=None,
+                   help="Override the training run directory. By default it is "
+                        "constructed as runs/phi4_L{L_train}_k{k}_l{l}_{network}; pass "
+                        "this to load multi-L runs e.g. "
+                        "runs/phi4_Lmulti8-16-32_k0.2705_l0.022_ncsnpp")
+    p.add_argument("--tag", type=str, default=None,
+                   help="Override output tag. Default encodes L_train; multi-L "
+                        "users may want a custom tag.")
     args = p.parse_args()
 
     assert args.L_sample % 8 == 0, "L_sample must be divisible by 8 (3 stride-2 downs)"
 
-    train_dir = f"phi4_L{args.L_train}_k{args.k}_l{args.l}_{args.network}"
+    train_dir = (args.run_dir
+                 or f"runs/phi4_L{args.L_train}_k{args.k}_l{args.l}_{args.network}")
     ckpts = sorted(Path(f"{train_dir}/models").glob(f"*{args.ep}*.ckpt"))
     if not ckpts:
         raise FileNotFoundError(f"No checkpoint matching '*{args.ep}*.ckpt' in {train_dir}/models")
@@ -78,13 +87,18 @@ def main():
     norm_min = h.get("norm_min", -4.0)
     norm_max = h.get("norm_max",  4.0)
     L_train_ckpt = h.get("L", args.L_train)
-    print(f"hparams: sigma={sigma}  norm=[{norm_min:.4f},{norm_max:.4f}]  L_train(ckpt)={L_train_ckpt}")
+    # Auto-detect l_cond from state_dict (l_cond flag not stored in hparams,
+    # but the L_embed submodule is when training used --l_cond).
+    sd = ckpt.get("state_dict", {})
+    l_cond_detected = any("L_embed" in k for k in sd.keys())
+    print(f"hparams: sigma={sigma}  norm=[{norm_min:.4f},{norm_max:.4f}]  "
+          f"L_train(ckpt)={L_train_ckpt}  l_cond={l_cond_detected}")
     print(f"Sampling at L={args.L_sample}  (cross-L, network is fully convolutional)")
 
     # Build model and load weights
     marginal_prob_std_fn = functools.partial(marginal_prob_std, sigma=sigma)
     if args.network == "ncsnpp":
-        score_model = NCSNpp2D(marginal_prob_std_fn)
+        score_model = NCSNpp2D(marginal_prob_std_fn, l_cond=l_cond_detected)
     elif args.network == "scorenet":
         score_model = ScoreNet(marginal_prob_std_fn, periodic=True)
     else:
@@ -97,9 +111,12 @@ def main():
     # Output dir under the L_train run dir, but tagged with L_sample
     out_root = Path(train_dir) / "data_crossL"
     out_root.mkdir(parents=True, exist_ok=True)
-    tag = f"crossL_train{args.L_train}_sample{args.L_sample}_{args.method}_{args.schedule}_steps{args.num_steps}_ep{args.ep}"
-    if args.method == "mala":
-        tag += f"_tmh{args.t_mh}_mh{args.mh_steps}_norm{args.norm_for_action}"
+    if args.tag is not None:
+        tag = args.tag
+    else:
+        tag = f"crossL_train{args.L_train}_sample{args.L_sample}_{args.method}_{args.schedule}_steps{args.num_steps}_ep{args.ep}"
+        if args.method == "mala":
+            tag += f"_tmh{args.t_mh}_mh{args.mh_steps}_norm{args.norm_for_action}"
 
     # Sample
     print(f"Sampling [{args.method}/{args.schedule}] num_steps={args.num_steps} n_repeats={args.n_repeats} num/rep={args.num_samples}  seed={args.seed}")

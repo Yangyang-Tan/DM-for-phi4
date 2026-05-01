@@ -23,7 +23,7 @@ N_REPEATS=1
 SDE_STEPS=2000
 ODE_STEPS=400
 
-RUN_DIR="phi4_3d_L${L}_k${KAPPA}_l${LAMBDA}_${NETWORK}"
+RUN_DIR="runs/phi4_3d_L${L}_k${KAPPA}_l${LAMBDA}_${NETWORK}"
 LOG_DIR="${RUN_DIR}/logs"
 mkdir -p "$LOG_DIR"
 SWEEP_LOG="${LOG_DIR}/sweep_${DEVICE//:/}.log"

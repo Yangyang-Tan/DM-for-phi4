@@ -201,7 +201,7 @@ def main():
     parser.add_argument("--gen_path", type=str, default=None, help="Override generated data path")
     args = parser.parse_args()
 
-    base = f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}"
+    base = f"runs/phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}"
     ref_path = args.ref_path or f"trainingdata/cfgs_wolff_fahmc_k={args.k}_l={args.l}_{args.L}^3.jld2"
     gen_path = args.gen_path or f"{base}/data/samples_epoch={args.epoch}.npy"
 

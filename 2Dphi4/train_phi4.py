@@ -110,7 +110,7 @@ def main():
     print(f"EMA starts at epoch: {args.ema_start}")
 
     # Output directory for logs and models
-    output_dir = f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
+    output_dir = f"runs/phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
     os.makedirs(f"{output_dir}/models", exist_ok=True)
     print(f"Output directory: {output_dir}/")
 

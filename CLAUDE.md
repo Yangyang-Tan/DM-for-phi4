@@ -63,7 +63,7 @@ Typical sampling flags: `--method em --num_steps 2000 --schedule log --num_sampl
 
 - **SDE**: Variance-Exploding with `sigma^t`. Network output divided by `marginal_prob_std(t)`.
 - **`sigma` is NOT Song's `σ_max`.** This codebase parameterizes VE-SDE so `std(t=1) = sqrt((σ²−1)/(2·ln σ))`.
-- **Empirical sigma rule (L=128 ablation, validated 2026-04):** choose σ such that `σ_max ≈ 2·std(t=1)` — equivalently `std(t=1) ≈ σ_max/2` — where `σ_max` is the max pairwise Euclidean distance of training cfgs in **original (un-normalized) data space**. The normalized-space variant is off by ~5× and wrong. Verified at L=128: predicted σ matches the ablation winner to within ≤15% (k=0.2705 → predict 479, best 450; k=0.28 → predict 735, best 640). Reusable check: [2Dphi4/analysis/check_sigma_rule.py](2Dphi4/analysis/check_sigma_rule.py).
+- **Empirical sigma rule (L=128 ablation, validated 2026-04):** choose σ such that `σ_max ≈ 2·std(t=1)` — equivalently `std(t=1) ≈ σ_max/2` — where `σ_max` is the max pairwise Euclidean distance of training cfgs in **original (un-normalized) data space**.
 
 ## GPU
 - CUDA mapping (PyTorch; differs from nvidia-smi):

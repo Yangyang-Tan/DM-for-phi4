@@ -23,7 +23,7 @@ from scipy.spatial.distance import pdist
 import matplotlib.pyplot as plt
 
 ROOT = "/data/tyywork/DM/2Dphi4"
-OUT  = f"{ROOT}/sigma_comparison_L128"
+OUT  = f"{ROOT}/results/sigma_comparison_L128"
 os.makedirs(OUT, exist_ok=True)
 
 # ---------------------------- loaders ---------------------------------
@@ -114,14 +114,14 @@ def analyze(k, new_sigma, old_sigma=None, cache={}):
     train = cache[f"train_{k}"]
     print(f"  train shape = {train.shape}")
 
-    new_path = (f"{ROOT}/phi4_L128_k{k}_l0.022_ncsnpp_sigma{new_sigma}"
+    new_path = (f"{ROOT}/runs/phi4_L128_k{k}_l0.022_ncsnpp_sigma{new_sigma}"
                 f"/data/samples_em_steps2000_epoch=10000.npy")
     new = load_npy(new_path)
     print(f"  new   shape = {new.shape}    range=[{new.min():+.3f},{new.max():+.3f}]")
 
     old = None
     if old_sigma is not None:
-        old_path = (f"{ROOT}/phi4_L128_k{k}_l0.022_ncsnpp"
+        old_path = (f"{ROOT}/runs/phi4_L128_k{k}_l0.022_ncsnpp"
                     f"/data/samples_em_steps2000_epoch=9999.npy")
         if os.path.isfile(old_path):
             old = load_npy(old_path)

@@ -32,12 +32,12 @@ NUM_CKPTS=100
 NETWORK=ncsnpp
 DATA_PATH="trainingdata/cfgs_wolff_fahmc_k=${K}_l=${LAMBDA}_${L}^2.jld2"
 
-LOG_DIR="sigma_ablation_L32_k2705_logs"
+LOG_DIR="results/sigma_ablation/L32_k2705"
 mkdir -p "$LOG_DIR"
 
 for SIGMA in "${SIGMAS[@]}"; do
     SUFFIX="_sigma${SIGMA}"
-    RUN_DIR="phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}${SUFFIX}"
+    RUN_DIR="runs/phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}${SUFFIX}"
     LOG="${LOG_DIR}/train_L${L}_k${K}${SUFFIX}_${DEVICE//:/}.log"
 
     RESUME_FLAG=""

@@ -84,7 +84,7 @@ def main():
     epochs = (args.epochs.split(",") if args.epochs else DEFAULT_EPOCHS)
     epochs = [e.strip() for e in epochs if e.strip()]
 
-    run_dir = (f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_"
+    run_dir = (f"runs/phi4_3d_L{args.L}_k{args.k}_l{args.l}_"
                f"{args.network}{args.output_suffix}")
     models_dir = f"{run_dir}/models"
     out_dir = f"{run_dir}/data"

@@ -61,7 +61,7 @@ def main():
     rows = []  # numerical table
 
     for col, (k, ep, label) in enumerate(cases):
-        run_dir = Path(f"phi4_L32_k{k}_l0.022_ncsnpp/data_crossL")
+        run_dir = Path(f"runs/phi4_L32_k{k}_l0.022_ncsnpp/data_crossL")
         ref = load_hmc(Path(f"trainingdata/cfgs_wolff_fahmc_k={k}_l=0.022_64^2.jld2"))[:8192]
 
         runs = {}
@@ -95,7 +95,7 @@ def main():
         fontsize=14, y=1.02,
     )
     plt.tight_layout()
-    out = Path("crossL_logs/crossL_mala_compare.pdf")
+    out = Path("results/crossL/crossL_mala_compare.pdf")
     out.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out, bbox_inches="tight")
     plt.savefig(str(out).replace(".pdf", ".png"), dpi=140, bbox_inches="tight")

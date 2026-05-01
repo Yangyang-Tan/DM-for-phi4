@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--num_samples", type=int, default=64, help="Number of samples")
     parser.add_argument("--num_steps", type=int, default=4000, help="Sampling steps")
     parser.add_argument("--method", type=str, default="em", choices=["em", "pc"], help="Sampling method")
-    parser.add_argument("--output", type=str, default="MNIST/mnist_samples.png", help="Output image path")
+    parser.add_argument("--output", type=str, default="MNIST/figures/mnist_samples.png", help="Output image path")
     parser.add_argument("--sigma", type=float, default=55.0, help="Noise scale (must match training)")
     args = parser.parse_args()
 

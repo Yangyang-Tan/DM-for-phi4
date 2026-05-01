@@ -35,14 +35,14 @@ ODE_STEPS=400
 # Order: completed sigmas first, still-training last
 SIGMAS=(25 50 100 600 150 300)
 
-LOG_DIR="sigma_ablation_logs"
+LOG_DIR="results/sigma_ablation/all"
 mkdir -p "$LOG_DIR"
 SWEEP_LOG="${LOG_DIR}/sweep_${DEVICE//:/}.log"
 
 echo "==== SWEEP START $(date +%F\ %T) on ${DEVICE} ====" | tee -a "$SWEEP_LOG"
 
 for SIGMA in "${SIGMAS[@]}"; do
-    RUN_DIR="phi4_L64_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
+    RUN_DIR="runs/phi4_L64_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
     if [[ ! -d "${RUN_DIR}/models" ]]; then
         echo ">>> [SKIP] ${RUN_DIR}/models missing" | tee -a "$SWEEP_LOG"
         continue

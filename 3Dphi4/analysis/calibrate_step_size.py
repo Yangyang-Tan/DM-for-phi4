@@ -6,10 +6,11 @@ Usage:
 """
 
 import sys
-sys.path.append("..")
-
 import re, io, functools, argparse
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))   # 3Dphi4/
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))  # repo root
 
 import h5py, torch, numpy as np, matplotlib.pyplot as plt
 
@@ -107,7 +108,7 @@ def main():
     parser.add_argument("--data_path", type=str, default=None)
     args = parser.parse_args()
 
-    model_dir = Path(f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}")
+    model_dir = Path(f"runs/phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}")
     ckpts = find_epoch_checkpoints(model_dir / "models")
     epochs = sorted(ckpts.keys())
     early_ep = args.early_epoch or epochs[0]

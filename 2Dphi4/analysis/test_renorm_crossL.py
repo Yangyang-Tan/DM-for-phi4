@@ -62,7 +62,7 @@ for k, ep, label in cases:
     print(f"   L=64 norm: [{a64:.4f},{b64:.4f}]  span={b64-a64:.4f}  span_ratio={span_ratio:.4f}")
     print(f"   Predicted G ratio after renorm: {span_ratio**2:.4f}")
 
-    f_log = Path(f"phi4_L32_k{k}_l0.022_ncsnpp/data_crossL/"
+    f_log = Path(f"runs/phi4_L32_k{k}_l0.022_ncsnpp/data_crossL/"
                  f"samples_crossL_train32_sample64_em_log_steps2000_ep{ep}.npy")
     dm = load_dm(f_log)
     # Invert L=32 denorm, re-denorm with L=64

@@ -125,7 +125,7 @@ def main():
         rows.append((label, k, "HMC", xi, xi_err))
 
         for sched in ("log", "linear"):
-            f = Path(f"phi4_L32_k{k}_l0.022_ncsnpp/data_crossL/"
+            f = Path(f"runs/phi4_L32_k{k}_l0.022_ncsnpp/data_crossL/"
                      f"samples_crossL_train32_sample64_em_{sched}_steps2000_ep{ep}.npy")
             if not f.exists():
                 continue
@@ -136,7 +136,7 @@ def main():
             rows.append((label, k, f"DM[{sched}]", xi, xi_err))
         print("")
 
-    out = Path("crossL_logs/xi_table.txt")
+    out = Path("results/crossL/xi_table.txt")
     with out.open("w") as f:
         f.write("phase  kappa  source  xi  xi_err\n")
         for r in rows:

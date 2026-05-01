@@ -229,7 +229,7 @@ def main():
         description="3D phi4 score-quality sweep over (κ, epoch)."
     )
     parser.add_argument("--base_dir", type=str,
-                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+                        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runs"))
     parser.add_argument("--k", type=float, nargs="+", default=None)
     parser.add_argument("--network", type=str, default="ncsnpp")
     parser.add_argument("--device", type=str, default="cuda:0")

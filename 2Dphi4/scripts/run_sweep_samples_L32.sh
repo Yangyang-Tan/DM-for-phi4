@@ -38,14 +38,14 @@ N_REPEATS=1
 SDE_STEPS=2000
 ODE_STEPS=400
 
-LOG_DIR="sigma_ablation_L32_logs"
+LOG_DIR="results/sigma_ablation/L32"
 mkdir -p "$LOG_DIR"
 SWEEP_LOG="${LOG_DIR}/sweep_${DEVICE//:/}_sigmas$(echo "${SIGMAS[@]}" | tr ' ' '-').log"
 
 echo "==== SWEEP START $(date +%F\ %T) on ${DEVICE} (L=${L}) ====" | tee -a "$SWEEP_LOG"
 
 for SIGMA in "${SIGMAS[@]}"; do
-    RUN_DIR="phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
+    RUN_DIR="runs/phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
     if [[ ! -d "${RUN_DIR}/models" ]]; then
         echo ">>> [SKIP] ${RUN_DIR}/models missing" | tee -a "$SWEEP_LOG"
         continue

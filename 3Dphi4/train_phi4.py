@@ -127,7 +127,7 @@ def main():
     print(f"Training 3D phi4 model with L={args.L}, k={args.k}, l={args.l}")
 
     # Output directory for logs and models
-    output_dir = f"phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
+    output_dir = f"runs/phi4_3d_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
     os.makedirs(f"{output_dir}/models", exist_ok=True)
     print(f"Output directory: {output_dir}/")
 

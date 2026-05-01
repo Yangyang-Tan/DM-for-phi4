@@ -133,7 +133,7 @@ def main():
                              "across calls. Repeats use seed, seed+1, ... (deterministic).")
     args = parser.parse_args()
 
-    run_dir = f"phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
+    run_dir = f"runs/phi4_L{args.L}_k{args.k}_l{args.l}_{args.network}{args.output_suffix}"
 
     # Get checkpoint
     if args.checkpoint is None:

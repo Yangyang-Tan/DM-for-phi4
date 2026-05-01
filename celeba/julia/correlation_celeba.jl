@@ -13,7 +13,7 @@ using Printf
 
 include("../2Dphi4/CorrelationUtils.jl")
 
-const BASE_DIR = @__DIR__
+const BASE_DIR = joinpath(@__DIR__, "..", "runs")
 const MAX_DIAG = 0.51
 
 # ═══════════════════════════════════════════════════════════════════

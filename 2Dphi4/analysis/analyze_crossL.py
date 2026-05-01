@@ -74,7 +74,7 @@ def main():
     p.add_argument("--l", type=float, default=0.022)
     p.add_argument("--num_steps", type=int, default=2000)
     p.add_argument("--method", type=str, default="em")
-    p.add_argument("--out", type=str, default="crossL_logs/crossL_compare.pdf")
+    p.add_argument("--out", type=str, default="results/crossL/crossL_compare.pdf")
     args = p.parse_args()
 
     cases = [
@@ -88,7 +88,7 @@ def main():
 
     for row, (k, ep, label) in enumerate(cases):
         kf = float(k)
-        run_dir = Path(f"phi4_L{args.L_train}_k{k}_l{args.l}_ncsnpp")
+        run_dir = Path(f"runs/phi4_L{args.L_train}_k{k}_l{args.l}_ncsnpp")
         ref_path = Path("trainingdata") / f"cfgs_wolff_fahmc_k={k}_l={args.l}_{args.L_sample}^2.jld2"
         ref = load_hmc_reference(str(ref_path))
         # cap reference for histogram fairness

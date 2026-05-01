@@ -73,7 +73,7 @@ def main():
 
     L = args.image_size
     t0_list = [float(x) for x in args.t0_list.split(",")]
-    model_dir = f"celeba_{L}_{args.network}"
+    model_dir = f"runs/celeba_{L}_{args.network}"
 
     if args.checkpoint is None:
         pattern = f"*{args.ep}*.ckpt" if args.ep else "*.ckpt"

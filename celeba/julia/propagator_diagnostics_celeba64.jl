@@ -22,7 +22,7 @@ gr()
 
 include("../2Dphi4/CorrelationUtils.jl")
 
-const BASE_DIR  = @__DIR__
+const BASE_DIR = joinpath(@__DIR__, "..", "runs")
 const MAX_DIAG  = 0.51
 const DIR_SYM   = :radial        # or :x, :y, :diagonal
 const DIM       = 2              # images are 2D

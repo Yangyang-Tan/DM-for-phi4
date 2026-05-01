@@ -17,7 +17,7 @@ from networks_3d import NCSNpp3D
 from diffusion_lightning_3d import DiffusionModel3D, marginal_prob_std
 
 
-RUN_DIR = "/data/tyywork/DM/3Dphi4/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760"
+RUN_DIR = "/data/tyywork/DM/3Dphi4/runs/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760"
 CKPT    = f"{RUN_DIR}/models/epoch=10000.ckpt"
 DEVICE  = "cuda:2"
 SEED    = 20260422

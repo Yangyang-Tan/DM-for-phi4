@@ -20,10 +20,10 @@ import matplotlib.pyplot as plt
 from analyze_L64_3d_sweep import compute_propagator_3d, per_mode_kl
 
 ROOT = "/data/tyywork/DM/3Dphi4"
-CACHE_LIN = f"{ROOT}/sigma_comparison_3D/L64_k0.2_sigma2760/prop_cache"
-CACHE_LOG = f"{ROOT}/sigma_comparison_3D/L64_k0.2_sigma2760/prop_cache_log"
-DATA_LIN  = f"{ROOT}/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data"
-DATA_LOG  = f"{ROOT}/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data_log"
+CACHE_LIN = f"{ROOT}/results/sigma_comparison_3D/L64_k0.2_sigma2760/prop_cache"
+CACHE_LOG = f"{ROOT}/results/sigma_comparison_3D/L64_k0.2_sigma2760/prop_cache_log"
+DATA_LIN  = f"{ROOT}/runs/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data"
+DATA_LOG  = f"{ROOT}/runs/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma2760/data_log"
 os.makedirs(CACHE_LOG, exist_ok=True)
 
 EPOCHS = ["0001","0002","0003","0005","0009","0016","0028","0045","0079",
@@ -151,7 +151,7 @@ plt.suptitle(
     "3D L=64 k=0.2 l=0.9 σ=2760  —  em (SDE) schedule comparison (full 18 epochs)",
     fontsize=13)
 plt.tight_layout()
-out = f"{ROOT}/sigma_comparison_3D/L64_k0.2_sigma2760/em_linear_vs_log_evolution.png"
+out = f"{ROOT}/results/sigma_comparison_3D/L64_k0.2_sigma2760/em_linear_vs_log_evolution.png"
 plt.savefig(out, dpi=120, bbox_inches="tight")
 plt.savefig(out.replace(".png", ".pdf"), bbox_inches="tight")
 print(f"\nsaved {out}")

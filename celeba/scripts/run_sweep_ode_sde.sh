@@ -19,7 +19,7 @@ SDE_STEPS=2000
 ODE_STEPS=400
 SEED=20260421
 
-RUN_DIR="celeba_${L}_${NETWORK}"
+RUN_DIR="runs/celeba_${L}_${NETWORK}"
 LOG_DIR="${RUN_DIR}/logs"
 mkdir -p "$LOG_DIR" "${RUN_DIR}/data"
 

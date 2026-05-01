@@ -26,7 +26,7 @@ SDE_STEPS=2000
 ODE_STEPS=400
 SEED=20260422
 
-RUN_DIR="phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
+RUN_DIR="runs/phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
 LOG_DIR="${RUN_DIR}/logs"
 mkdir -p "$LOG_DIR" "${RUN_DIR}/data"
 

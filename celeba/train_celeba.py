@@ -85,7 +85,7 @@ def main():
     print(f"Training samples: {len(data_module.train_data)}")
 
     # Output directory
-    output_dir = f"celeba_{L}_{args.network}"
+    output_dir = f"runs/celeba_{L}_{args.network}"
     os.makedirs(f"{output_dir}/data", exist_ok=True)
     os.makedirs(f"{output_dir}/models", exist_ok=True)
     print(f"Output directory: {output_dir}/")

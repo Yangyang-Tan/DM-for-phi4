@@ -27,14 +27,14 @@ N_REPEATS=1
 SDE_STEPS=2000
 ODE_STEPS=400
 
-LOG_DIR="sigma_ablation_L32_k26_logs"
+LOG_DIR="results/sigma_ablation/L32_k26"
 mkdir -p "$LOG_DIR"
 SWEEP_LOG="${LOG_DIR}/sweep_${DEVICE//:/}_sigmas$(echo "${SIGMAS[@]}" | tr ' ' '-').log"
 
 echo "==== SWEEP START $(date +%F\ %T) on ${DEVICE} (L=${L} k=${K}) ====" | tee -a "$SWEEP_LOG"
 
 for SIGMA in "${SIGMAS[@]}"; do
-    RUN_DIR="phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
+    RUN_DIR="runs/phi4_L${L}_k${K}_l${LAMBDA}_${NETWORK}_sigma${SIGMA}"
     [[ -d "${RUN_DIR}/models" ]] || { echo ">>> SKIP missing ${RUN_DIR}"; continue; }
     mapfile -t CKPTS < <(ls "${RUN_DIR}/models/" 2>/dev/null | grep -E '^epoch=[0-9]+\.ckpt$' | sort -V)
     n="${#CKPTS[@]}"; [[ $n -eq 0 ]] && continue

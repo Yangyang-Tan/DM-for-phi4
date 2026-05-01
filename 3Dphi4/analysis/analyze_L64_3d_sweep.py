@@ -10,7 +10,7 @@ For k=0.2, σ=2760, method ∈ {em, ode}:
   - Produce em-vs-ode comparison at ep=10000
   - Produce UV/IR diagnostics evolution (KL, z, phase-space weighted)
 
-Outputs under sigma_comparison_3D/L64_k0.2_sigma2760/.
+Outputs under results/sigma_comparison_3D/L64_k0.2_sigma2760/.
 """
 import os, time
 from collections import OrderedDict
@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 ROOT = "/data/tyywork/DM/3Dphi4"
-OUT_ROOT = f"{ROOT}/sigma_comparison_3D"
+OUT_ROOT = f"{ROOT}/results/sigma_comparison_3D"
 os.makedirs(OUT_ROOT, exist_ok=True)
 
 K = 0.2
@@ -44,7 +44,7 @@ def load_train():
 
 def load_gen(method, ep):
     steps = 2000 if method == "em" else 400
-    path = (f"{ROOT}/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma{SIGMA}"
+    path = (f"{ROOT}/runs/phi4_3d_L64_k0.2_l0.9_ncsnpp_sigma{SIGMA}"
             f"/data/samples_{method}_steps{steps}_epoch={ep}.npy")
     if not os.path.isfile(path):
         return None

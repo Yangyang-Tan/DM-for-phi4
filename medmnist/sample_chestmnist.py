@@ -34,7 +34,7 @@ def main():
     parser.add_argument("--num_samples", type=int, default=64, help="Number of samples")
     parser.add_argument("--num_steps", type=int, default=2000, help="Sampling steps")
     parser.add_argument("--method", type=str, default="em", choices=["em", "pc"], help="Sampling method")
-    parser.add_argument("--output", type=str, default="chestmnist_samples.png", help="Output image path")
+    parser.add_argument("--output", type=str, default="figures/chestmnist_samples.png", help="Output image path")
     parser.add_argument("--sigma", type=float, default=25.0, help="Noise scale (must match training)")
     parser.add_argument("--size", type=int, default=64, help="Image size")
     parser.add_argument("--device", type=str, default="cuda:2", help="GPU device")
