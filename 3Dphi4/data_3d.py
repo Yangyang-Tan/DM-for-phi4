@@ -65,18 +65,18 @@ class MultiLFieldDataModule3D(pl.LightningDataModule):
         raws = {}
         for path in self.data_paths:
             with h5py.File(path, "r") as f:
-                cfgs = np.array(f["cfgs"])
+                cfgs = np.array(f["cfgs"], dtype=np.float32)
             assert cfgs.ndim == 4, (
                 f"3D module expects ndim=4 (N,L,L,L); got {cfgs.shape} in {path}"
             )
             # Auto-detect (L, L, L, N) -> (N, L, L, L)
             if cfgs.shape[-1] > cfgs.shape[0]:
-                cfgs = cfgs.transpose(3, 0, 1, 2)
+                cfgs = np.ascontiguousarray(cfgs.transpose(3, 0, 1, 2))
             L = int(cfgs.shape[1])
             assert cfgs.shape[2] == L and cfgs.shape[3] == L, (
                 f"non-cubic lattice in {path}: {cfgs.shape}"
             )
-            raws[L] = cfgs.astype(np.float32)
+            raws[L] = cfgs
 
         if self.normalize:
             self.cfgs_min = float(min(r.min() for r in raws.values()))

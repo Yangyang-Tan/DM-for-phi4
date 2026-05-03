@@ -62,7 +62,7 @@ def main():
     # Load and compute propagator
     spec = {}
     for name, path, color, marker in cases:
-        cfgs = load_hmc(path, max_n=8192) if "max_n" in load_hmc.__code__.co_varnames else load_hmc(path)
+        cfgs = load_hmc(path)
         if cfgs.shape[0] > 8192:
             cfgs = cfgs[:8192]
         k_lat, G, E = diagonal_propagator(cfgs)

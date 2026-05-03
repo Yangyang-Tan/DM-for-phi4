@@ -77,9 +77,6 @@ def main():
 
     train_dir = (args.run_dir
                  or f"runs/phi4_L{args.L_train}_k{args.k}_l{args.l}_{args.network}")
-    # Exact-match the checkpoint filename to avoid the substring/lex-sort
-    # ambiguity (e.g. "9111" being preferred over "10000" because "9" > "1"
-    # lexically, or "111" matching multiple files).
     ckpt_path = Path(f"{train_dir}/models") / f"epoch={args.ep:04d}.ckpt"
     if not ckpt_path.exists():
         available = sorted(p.name for p in Path(f"{train_dir}/models").glob("epoch=*.ckpt"))

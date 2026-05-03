@@ -17,6 +17,7 @@ import argparse
 
 import numpy as np
 import torch
+import yaml
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
 
@@ -139,8 +140,6 @@ def main():
     os.makedirs(f"{output_dir}/models", exist_ok=True)
     print(f"Output directory: {output_dir}/")
 
-    # Save full training config (CLI args + derived) for reproducibility
-    import yaml
     cfg = {**vars(args),
            "L_list": L_list,
            "norm_min": data_module.cfgs_min,
@@ -149,7 +148,6 @@ def main():
            "param_count_M": sum(p.numel() for p in score_model.parameters()) / 1e6}
     with open(f"{output_dir}/training_config.yaml", "w") as f:
         yaml.safe_dump(cfg, f, sort_keys=False)
-    print(f"Saved training_config.yaml")
 
     checkpoint_log = LogScaleCheckpoint(
         dirpath=f"{output_dir}/models",
