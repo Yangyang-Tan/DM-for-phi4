@@ -41,7 +41,9 @@ def main():
     p.add_argument("--L_sample", type=int, default=64)
     p.add_argument("--k", type=float, required=True)
     p.add_argument("--l", type=float, default=0.022)
-    p.add_argument("--ep", type=str, required=True, help="Epoch token, e.g. '4999'")
+    p.add_argument("--ep", type=int, required=True,
+                   help="Epoch number to load. Resolves to "
+                        "{run_dir}/models/epoch={ep:04d}.ckpt by exact match.")
     p.add_argument("--network", type=str, default="ncsnpp",
                    choices=["scorenet", "unet", "ncsnpp"])
     p.add_argument("--num_samples", type=int, default=512)
@@ -75,10 +77,18 @@ def main():
 
     train_dir = (args.run_dir
                  or f"runs/phi4_L{args.L_train}_k{args.k}_l{args.l}_{args.network}")
-    ckpts = sorted(Path(f"{train_dir}/models").glob(f"*{args.ep}*.ckpt"))
-    if not ckpts:
-        raise FileNotFoundError(f"No checkpoint matching '*{args.ep}*.ckpt' in {train_dir}/models")
-    ckpt_path = str(ckpts[-1])
+    # Exact-match the checkpoint filename to avoid the substring/lex-sort
+    # ambiguity (e.g. "9111" being preferred over "10000" because "9" > "1"
+    # lexically, or "111" matching multiple files).
+    ckpt_path = Path(f"{train_dir}/models") / f"epoch={args.ep:04d}.ckpt"
+    if not ckpt_path.exists():
+        available = sorted(p.name for p in Path(f"{train_dir}/models").glob("epoch=*.ckpt"))
+        raise FileNotFoundError(
+            f"No checkpoint at {ckpt_path}.\n"
+            f"Available ({len(available)}): "
+            f"{available[:3]} ... {available[-3:]}"
+        )
+    ckpt_path = str(ckpt_path)
     print(f"Checkpoint: {ckpt_path}")
 
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)

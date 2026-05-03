@@ -1,26 +1,15 @@
 """
-Train a 2D phi^4 score-based diffusion model on configurations from MULTIPLE
-lattice sizes simultaneously.
+Train a 3D phi^4 score-based diffusion model on configurations from MULTIPLE
+lattice sizes simultaneously (L_list, e.g. {4,8,16,32}).
 
-The whole point of this is to give the score function exposure to several
-correlation-length-to-volume ratios so it can be evaluated on a held-out L
-(e.g. train on {8,16,32}, test on 64) without IR-mode collapse.
-
-The architecture is unchanged — NCSNpp2D / ScoreNet / ScoreNetUNetPeriodic
-are fully convolutional with circular padding and so accept any L. The only
-change is the data pipeline ([MultiLFieldDataModule] in ../data.py): pooled
-[-1,1] normalisation, per-step random-L batching.
+Mirrors 2Dphi4/train_phi4_multiL.py. NCSNpp3D is fully convolutional with
+circular padding so accepts any L; per-step single-L batches via
+MultiLBatchSampler.
 
 Usage:
-    python train_phi4_multiL.py --L_list 8,16,32 --k 0.2705 --l 0.022 \
-        --network ncsnpp --device cuda:0 --epochs 5000 --sigma 20
-
-Sampling at any L afterwards uses sample_phi4_crossL.py with --L_train set
-to the run's tag (the run-dir name encodes the L-list).
+    python train_phi4_multiL.py --L_list 4,8,16,32 --k 0.1923 --l 0.9 \\
+        --network ncsnpp --device cuda:0 --epochs 10000 --sigma 375
 """
-
-import sys
-sys.path.append("..")
 
 import os
 import functools
@@ -34,13 +23,13 @@ from pytorch_lightning.callbacks import Callback
 torch.set_float32_matmul_precision("medium")
 torch.backends.cudnn.benchmark = True
 
-from networks import ScoreNet, ScoreNetUNetPeriodic, NCSNpp2D
-from diffusion_lightning import DiffusionModel, marginal_prob_std
-from data import MultiLFieldDataModule
+from networks_3d import ScoreNet3D, ScoreNet3DUNetPeriodic, NCSNpp3D
+from diffusion_lightning_3d import DiffusionModel3D, marginal_prob_std
+from data_3d import MultiLFieldDataModule3D
 
 
 class LogScaleCheckpoint(Callback):
-    """Save checkpoints on a log-scale schedule (matches train_phi4.py)."""
+    """Save checkpoints on a log-scale schedule."""
 
     def __init__(self, dirpath, max_epochs, num_checkpoints=100):
         super().__init__()
@@ -60,20 +49,20 @@ def parse_L_list(s: str):
 
 
 def main():
-    p = argparse.ArgumentParser(description="Multi-L training for 2D phi^4 diffusion")
-    p.add_argument("--L_list", type=str, default="8,16,32",
-                   help="Comma-separated list of training L's (e.g. '8,16,32')")
-    p.add_argument("--k", type=float, default=0.2705)
-    p.add_argument("--l", type=float, default=0.022)
-    p.add_argument("--sigma", type=float, default=20.0)
+    p = argparse.ArgumentParser(description="Multi-L training for 3D phi^4 diffusion")
+    p.add_argument("--L_list", type=str, default="4,8,16,32",
+                   help="Comma-separated training L's (e.g. '4,8,16,32')")
+    p.add_argument("--k", type=float, default=0.1923)
+    p.add_argument("--l", type=float, default=0.9)
+    p.add_argument("--sigma", type=float, default=375.0)
     p.add_argument("--lr", type=float, default=1e-3)
-    p.add_argument("--batch_size", type=int, default=64)
-    p.add_argument("--epochs", type=int, default=5000)
+    p.add_argument("--batch_size", type=int, default=32)
+    p.add_argument("--epochs", type=int, default=10000)
     p.add_argument("--ema_start", type=int, default=0)
     p.add_argument("--device", type=str, default="cuda:0")
     p.add_argument("--data_prefix", type=str,
                    default="trainingdata/cfgs_wolff_fahmc",
-                   help="Path prefix; full path is {prefix}_k={k}_l={l}_{L}^2.jld2")
+                   help="Path prefix; full path is {prefix}_k={k}_l={l}_{L}^3.jld2")
     p.add_argument("--network", type=str, default="ncsnpp",
                    choices=["scorenet", "unet", "ncsnpp"])
     p.add_argument("--ckpt_path", type=str, default=None)
@@ -86,14 +75,10 @@ def main():
     p.add_argument("--compile_mode", type=str, default="reduce-overhead",
                    choices=["reduce-overhead", "max-autotune"],
                    help="torch.compile mode. reduce-overhead: ~30-60s/shape "
-                        "compile, CUDA Graphs only — best for short runs and "
-                        "resumes. max-autotune: ~5-10min/shape compile, also "
-                        "Triton kernel autotuning — 15-30%% steady-state "
-                        "speedup, worth it on long fresh runs (≥10h).")
-    p.add_argument("--l_cond", action="store_true",
-                   help="Enable lattice-size conditioning in NCSNpp2D "
-                        "(adds Gaussian Fourier embedding of 1/L to time "
-                        "embedding). Auto-suffixes the output dir with _lcond.")
+                        "compile, CUDA Graphs only — best for short runs. "
+                        "max-autotune: ~5-10min/shape compile, also Triton "
+                        "kernel autotuning — 15-30%% steady-state speedup, "
+                        "worth it on long fresh runs.")
     p.add_argument("--output_suffix", type=str, default="")
     args = p.parse_args()
 
@@ -101,14 +86,14 @@ def main():
     print(f"Training on L_list = {L_list}")
 
     data_paths = [
-        f"{args.data_prefix}_k={args.k}_l={args.l}_{L}^2.jld2"
+        f"{args.data_prefix}_k={args.k}_l={args.l}_{L}^3.jld2"
         for L in L_list
     ]
     for p_ in data_paths:
         if not os.path.isfile(p_):
             raise FileNotFoundError(p_)
 
-    data_module = MultiLFieldDataModule(
+    data_module = MultiLFieldDataModule3D(
         data_paths=data_paths,
         batch_size=args.batch_size,
         normalize=True,
@@ -119,30 +104,26 @@ def main():
     marginal_prob_std_fn = functools.partial(marginal_prob_std, sigma=args.sigma)
 
     if args.network == "ncsnpp":
-        score_model = NCSNpp2D(marginal_prob_std_fn, l_cond=args.l_cond)
-        print(f"Using NCSNpp2D (periodic BC, l_cond={args.l_cond})")
+        score_model = NCSNpp3D(marginal_prob_std_fn)
+        print("Using NCSNpp3D (periodic BC)")
     elif args.network == "unet":
-        score_model = ScoreNetUNetPeriodic(marginal_prob_std_fn)
-        print("Using ScoreNetUNetPeriodic")
+        score_model = ScoreNet3DUNetPeriodic(marginal_prob_std_fn)
+        print("Using ScoreNet3DUNetPeriodic")
     else:
-        score_model = ScoreNet(marginal_prob_std_fn, periodic=True)
-        print("Using ScoreNet (no downsampling, periodic)")
+        score_model = ScoreNet3D(marginal_prob_std_fn, periodic=True)
+        print("Using ScoreNet3D (periodic, no downsampling)")
 
     if not args.no_compile:
-        # dynamic=False: separate static-shape graph per L (3 graphs total for
-        # L_list=[8,16,32]). Dynamic-shape compile chokes on the lattice
-        # arithmetic (sympy hangs on pow_by_natural simplifications), so we
-        # accept the per-shape compile cost in exchange for a smooth steady
-        # state.
+        # dynamic=False: separate static-shape graph per L. Dynamic-shape
+        # compile chokes on lattice arithmetic (sympy hangs on
+        # pow_by_natural simplifications), as observed in 2D.
         score_model = torch.compile(score_model, mode=args.compile_mode,
                                     dynamic=False)
         print(f"torch.compile enabled (mode={args.compile_mode}, "
               f"static per-L specialization)")
 
-    # Use the largest training L for self.L (only matters for sampling default
-    # — sampling can override via model.L = L_target).
     L_for_state = max(L_list)
-    model = DiffusionModel(
+    model = DiffusionModel3D(
         score_model=score_model,
         sigma=args.sigma,
         lr=args.lr,
@@ -153,11 +134,22 @@ def main():
     )
 
     L_tag = "-".join(str(L) for L in L_list)
-    auto_suffix = "_lcond" if args.l_cond else ""
-    output_dir = (f"runs/phi4_Lmulti{L_tag}_k{args.k}_l{args.l}_{args.network}"
-                  f"{auto_suffix}{args.output_suffix}")
+    output_dir = (f"runs/phi4_3d_Lmulti{L_tag}_k{args.k}_l{args.l}_{args.network}"
+                  f"{args.output_suffix}")
     os.makedirs(f"{output_dir}/models", exist_ok=True)
     print(f"Output directory: {output_dir}/")
+
+    # Save full training config (CLI args + derived) for reproducibility
+    import yaml
+    cfg = {**vars(args),
+           "L_list": L_list,
+           "norm_min": data_module.cfgs_min,
+           "norm_max": data_module.cfgs_max,
+           "n_total_cfgs": data_module.N_total,
+           "param_count_M": sum(p.numel() for p in score_model.parameters()) / 1e6}
+    with open(f"{output_dir}/training_config.yaml", "w") as f:
+        yaml.safe_dump(cfg, f, sort_keys=False)
+    print(f"Saved training_config.yaml")
 
     checkpoint_log = LogScaleCheckpoint(
         dirpath=f"{output_dir}/models",
