@@ -151,7 +151,7 @@ def main():
                 (sig_3D, f"L={L}: σ such that std(t=1)=D_max_orig    (={sig_3D:.0f})",
                  color, "-."),
             ]:
-                ax.axvline(sig, color=color2, ls=lstyle, alpha=0.5, lw=0.8)
+                ax.axvline(sig, label=label, color=color2, ls=lstyle, alpha=0.5, lw=0.8)
 
         ax.axhline(0, color="k", lw=0.5)
         ax.set_xscale("log")

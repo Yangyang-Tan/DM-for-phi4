@@ -203,7 +203,7 @@ with endpoint $\sigma(1)=\sqrt{(\sigma^{2}-1)/(2\ln\sigma)}$ setting the maximum
 \subsection{Reverse-time generation}
 \label{sec:dm_reverse}
 
-To draw samples from $p_{\text{data}}$ we must invert the forward dynamics of~\Eq{eq:forward_sde}, transporting an endpoint $\phi_{t_{\max}}\sim p_{t_{\max}}$ drawn from the tractable terminal distribution back to $t=0$. Anderson~\cite{Anderson1982} showed that the time-reversal of an It\^o SDE is itself an It\^o SDE. Applied to~\Eq{eq:forward_sde}, yields~\cite{Song2021SDE}
+To draw samples from $p_{\text{data}}$ we must reverse the forward dynamics of~\Eq{eq:forward_sde}. By construction the forward process drives any initial $\phi_{0}$ towards a fixed Gaussian, rendering the terminal distribution $p_{t_{\max}}$ tractable: a sample $\phi_{t_{\max}}\sim p_{t_{\max}}$ can be drawn directly from this Gaussian without reference to $p_{\text{data}}$. Evolving such a sample backward in time then yields $\phi_{0}\sim p_{\text{data}}$. Anderson~\cite{Anderson1982} showed that the time-reversal of an It\^o SDE is itself an It\^o SDE. Applied to~\Eq{eq:forward_sde}, yields~\cite{Song2021SDE}
 \begin{equation}
 \mathrm{d}\phi \;=\; \bigl[f(\phi,t)-g^{2}(t)\,\nabla_{\phi}\log p_{t}(\phi)\bigr]\,\mathrm{d}t \;+\; g(t)\,\mathrm{d}\bar{w},
 \label{eq:reverse_sde_exact}

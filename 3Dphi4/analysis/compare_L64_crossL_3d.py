@@ -21,7 +21,7 @@ import h5py
 
 
 def load_dm_3d(path):
-    """Load (L, L, L, N) → (N, L, L, L) and Z2-symmetrize via cat([s, -s])."""
+    """Load (L, L, L, N) → (N, L, L, L)."""
     arr = np.load(path)
     if arr.ndim == 4 and arr.shape[-1] > arr.shape[0]:
         arr = arr.transpose(3, 0, 1, 2)

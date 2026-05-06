@@ -75,7 +75,7 @@ def main():
     if args.network == "ncsnpp":
         score_model = NCSNpp3D(marginal_prob_std_fn)
     elif args.network == "scorenet":
-        score_model = ScoreNet3D(marginal_prob_std_fn)
+        score_model = ScoreNet3D(marginal_prob_std_fn, periodic=True)
     else:
         score_model = ScoreNet3DUNetPeriodic(marginal_prob_std_fn)
     model = DiffusionModel3D.load_from_checkpoint(ckpt_path, score_model=score_model)
